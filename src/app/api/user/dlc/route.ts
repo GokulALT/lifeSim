@@ -36,3 +36,12 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ unlockedDLCs: toSave });
 }
+
+export async function GET() {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const db   = await getDb();
+  const user = await db.collection<User>("users").findOne({ _id: session.user.id });
+  return NextResponse.json({ unlockedDLCs: user?.unlockedDLCs ?? ["core_realistic"] });
+}

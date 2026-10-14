@@ -5,6 +5,9 @@ import { DynamicStatRenderer } from "./DynamicStatRenderer";
 import { LifeLog }             from "./LifeLog";
 import { AgeButton }           from "./AgeButton";
 import { EventModal }          from "./EventModal";
+import { CareerTab }           from "./tabs/CareerTab";
+import { RelationsTab }        from "./tabs/RelationsTab";
+import { AssetsTab }           from "./tabs/AssetsTab";
 import type { CharacterClient } from "@/lib/schemas/character";
 
 interface Props { initialCharacter: CharacterClient }
@@ -151,37 +154,9 @@ export function GameDashboard({ initialCharacter }: Props) {
       {/* Tab content */}
       <div className="flex-1 overflow-hidden flex flex-col">
         {activeTab === "life" && <LifeLog log={char.log} />}
-        {activeTab === "career" && (
-          <div className="p-4 text-sm text-gray-300 space-y-2">
-            <p>Job: {char.career.currentJob ?? "None"}</p>
-            <p>Employer: {char.career.employer ?? "—"}</p>
-            <p>Education: {char.career.education}</p>
-            <p>Performance: {char.career.performance}/100</p>
-            <p>Salary: ${char.financials.salary.toLocaleString()}/yr</p>
-          </div>
-        )}
-        {activeTab === "relations" && (
-          <div className="p-4 space-y-2">
-            {char.relationships.length === 0 && <p className="text-gray-500 text-sm">No close relationships.</p>}
-            {char.relationships.map(r => (
-              <div key={r.npcId} className="flex justify-between text-sm">
-                <span className="text-gray-300">{r.name} <span className="text-gray-500">({r.relation})</span></span>
-                <span className="text-gray-400">{r.closeness}/100</span>
-              </div>
-            ))}
-          </div>
-        )}
-        {activeTab === "assets" && (
-          <div className="p-4 space-y-2">
-            {char.financials.assets.length === 0 && <p className="text-gray-500 text-sm">No assets.</p>}
-            {char.financials.assets.map((a, i) => (
-              <div key={i} className="flex justify-between text-sm">
-                <span className="text-gray-300">{a.name}</span>
-                <span className="text-gray-400">${a.value.toLocaleString()}</span>
-              </div>
-            ))}
-          </div>
-        )}
+        {activeTab === "career"    && <CareerTab    character={char} />}
+        {activeTab === "relations" && <RelationsTab character={char} />}
+        {activeTab === "assets"    && <AssetsTab    character={char} />}
       </div>
 
       {error && !pendingEvent && <p className="px-4 text-red-400 text-sm">{error}</p>}

@@ -4,16 +4,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mocks = vi.hoisted(() => ({
   auth:      vi.fn(),
   updateOne: vi.fn(),
+  findOne:   vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({ auth: mocks.auth }));
 vi.mock("@/lib/mongodb", () => ({
   getDb: vi.fn().mockResolvedValue({
-    collection: vi.fn().mockReturnValue({ updateOne: mocks.updateOne }),
+    collection: vi.fn().mockReturnValue({ updateOne: mocks.updateOne, findOne: mocks.findOne }),
   }),
 }));
 
-import { POST } from "./route";
+import { GET, POST } from "./route";
 import { NextRequest } from "next/server";
 
 function makeRequest(body: object | string) {
@@ -62,5 +63,32 @@ describe("POST /api/user/dlc", () => {
       { _id: "user_001" },
       { $set: { unlockedDLCs: ["core_realistic", "fantasy_world_pack_v1"] } }
     );
+  });
+});
+
+describe("GET /api/user/dlc", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.auth.mockResolvedValue({ user: { id: "user_001" } });
+  });
+
+  it("returns 401 without a session", async () => {
+    mocks.auth.mockResolvedValue(null);
+    const res = await GET();
+    expect(res.status).toBe(401);
+  });
+
+  it("returns the user's unlockedDLCs", async () => {
+    mocks.findOne.mockResolvedValue({ _id: "user_001", unlockedDLCs: ["core_realistic", "fantasy_world_pack_v1"] });
+    const res = await GET();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ unlockedDLCs: ["core_realistic", "fantasy_world_pack_v1"] });
+    expect(mocks.findOne).toHaveBeenCalledWith({ _id: "user_001" });
+  });
+
+  it("falls back to core_realistic when the user doc is missing", async () => {
+    mocks.findOne.mockResolvedValue(null);
+    const res = await GET();
+    expect(await res.json()).toEqual({ unlockedDLCs: ["core_realistic"] });
   });
 });
