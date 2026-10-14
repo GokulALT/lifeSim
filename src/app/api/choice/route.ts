@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { getDb } from "@/lib/mongodb";
 import { applyEffects } from "@/engine/statEngine";
 import { ChoiceRequestSchema } from "@/lib/schemas/api";
-import { toClient, toUpdateSet, appendLog } from "@/lib/characterServer";
+import { toClient, appendLog, persistCharacter } from "@/lib/characterServer";
 import type { Character } from "@/lib/schemas/character";
 
 export async function POST(req: NextRequest) {
@@ -49,13 +49,11 @@ export async function POST(req: NextRequest) {
     outcomeText = branch.outcomeText;
   }
 
-  updated = await appendLog(updated, { age: updated.age, text: outcomeText }, db);
-  updated = { ...updated, pendingEvent: null };
+  updated = appendLog(updated, { age: updated.age, text: outcomeText });
 
-  await db.collection<Character>("characters").updateOne(
-    { _id: characterId },
-    { $set: toUpdateSet(updated) }
-  );
+  // Conditional on the updatedAt we loaded: a concurrent /api/age or /api/choice wins, this one gets 409.
+  const saved = await persistCharacter(db, { ...updated, pendingEvent: null }, character.updatedAt);
+  if (!saved) return NextResponse.json({ error: "Conflict, please retry" }, { status: 409 });
 
-  return NextResponse.json({ character: toClient(updated), outcomeText });
+  return NextResponse.json({ character: toClient(saved), outcomeText });
 }

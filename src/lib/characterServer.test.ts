@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import type { Db } from "mongodb";
-import { toClient, appendLog } from "./characterServer";
+import { toClient, appendLog, splitOverflow, archiveEntries, persistCharacter } from "./characterServer";
 import type { Character } from "@/lib/schemas";
 
 function makeCharacter(logLength: number): Character {
@@ -19,10 +19,11 @@ function makeCharacter(logLength: number): Character {
   };
 }
 
-function makeDb() {
+function makeDb(matchedCount = 1) {
   const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
-  const collection = vi.fn().mockReturnValue({ insertOne });
-  return { db: { collection } as unknown as Db, collection, insertOne };
+  const updateOne = vi.fn().mockResolvedValue({ matchedCount });
+  const collection = vi.fn().mockReturnValue({ insertOne, updateOne });
+  return { db: { collection } as unknown as Db, collection, insertOne, updateOne };
 }
 
 describe("toClient", () => {
@@ -31,37 +32,90 @@ describe("toClient", () => {
     expect("hiddenStats" in client).toBe(false);
     expect(client.stats.health).toBe(80);
   });
+
+  it("strips the engine-internal _lowPerfYears key", () => {
+    const char = { ...makeCharacter(0), _lowPerfYears: 1 } as Character;
+    const client = toClient(char);
+    expect("_lowPerfYears" in client).toBe(false);
+    expect("_lowPerfYears" in char).toBe(true); // input untouched
+  });
 });
 
 describe("appendLog", () => {
-  it("appends without archiving when under the cap", async () => {
-    const { db, insertOne } = makeDb();
+  it("returns a clone with the entry appended", () => {
     const char = makeCharacter(3);
-    const result = await appendLog(char, { age: 25, text: "new" }, db);
+    const result = appendLog(char, { age: 25, text: "new" });
     expect(result.log).toHaveLength(4);
     expect(result.log[3]).toEqual({ age: 25, text: "new" });
-    expect(char.log).toHaveLength(3); // original untouched
-    expect(insertOne).not.toHaveBeenCalled();
+    expect(char.log).toHaveLength(3);
+  });
+});
+
+describe("splitOverflow", () => {
+  it("returns no overflow at or under the cap", () => {
+    const char = makeCharacter(500);
+    const { character, overflow } = splitOverflow(char);
+    expect(character.log).toHaveLength(500);
+    expect(overflow).toEqual([]);
   });
 
-  it("archives overflow beyond 500 into character_logs and keeps the newest 500", async () => {
-    const { db, collection, insertOne } = makeDb();
-    const char = makeCharacter(502);
-    const result = await appendLog(char, { age: 999, text: "newest" }, db);
-
-    expect(result.log).toHaveLength(500);
-    expect(result.log[499]).toEqual({ age: 999, text: "newest" });
-    expect(result.log[0]).toEqual({ age: 3, text: "entry 3" });
-
-    expect(collection).toHaveBeenCalledWith("character_logs");
-    expect(insertOne).toHaveBeenCalledTimes(1);
-    const doc = insertOne.mock.calls[0][0];
-    expect(doc.characterId).toBe("char_001");
-    expect(doc.entries).toEqual([
+  it("splits the oldest entries beyond 500 and keeps the newest 500", () => {
+    const char = appendLog(makeCharacter(502), { age: 999, text: "newest" });
+    const { character, overflow } = splitOverflow(char);
+    expect(character.log).toHaveLength(500);
+    expect(character.log[0]).toEqual({ age: 3, text: "entry 3" });
+    expect(character.log[499]).toEqual({ age: 999, text: "newest" });
+    expect(overflow).toEqual([
       { age: 0, text: "entry 0" },
       { age: 1, text: "entry 1" },
       { age: 2, text: "entry 2" },
     ]);
+    expect(char.log).toHaveLength(503); // input untouched
+  });
+});
+
+describe("archiveEntries", () => {
+  it("inserts entries into character_logs", async () => {
+    const { db, collection, insertOne } = makeDb();
+    await archiveEntries(db, "char_001", [{ age: 0, text: "entry 0" }]);
+    expect(collection).toHaveBeenCalledWith("character_logs");
+    const doc = insertOne.mock.calls[0][0];
+    expect(doc.characterId).toBe("char_001");
+    expect(doc.entries).toEqual([{ age: 0, text: "entry 0" }]);
     expect(typeof doc.archivedAt).toBe("string");
+  });
+
+  it("is a no-op for no entries", async () => {
+    const { db, insertOne } = makeDb();
+    await archiveEntries(db, "char_001", []);
+    expect(insertOne).not.toHaveBeenCalled();
+  });
+});
+
+describe("persistCharacter", () => {
+  it("updates conditionally on the loaded updatedAt, then archives overflow", async () => {
+    const { db, updateOne, insertOne } = makeDb(1);
+    const saved = await persistCharacter(db, makeCharacter(503), "2026-01-01");
+
+    expect(saved).not.toBeNull();
+    expect(saved!.log).toHaveLength(500);
+    expect(saved!.updatedAt).not.toBe("2026-01-01");
+
+    const [filter, update] = updateOne.mock.calls[0];
+    expect(filter).toEqual({ _id: "char_001", updatedAt: "2026-01-01" });
+    expect("_id" in update.$set).toBe(false);
+    expect(update.$set.log).toHaveLength(500);
+    expect(update.$set.updatedAt).toBe(saved!.updatedAt);
+
+    expect(insertOne).toHaveBeenCalledTimes(1);
+    expect(insertOne.mock.calls[0][0].entries).toHaveLength(3);
+    expect(updateOne.mock.invocationCallOrder[0]).toBeLessThan(insertOne.mock.invocationCallOrder[0]);
+  });
+
+  it("returns null and archives nothing on a concurrency conflict", async () => {
+    const { db, insertOne } = makeDb(0);
+    const saved = await persistCharacter(db, makeCharacter(503), "2026-01-01");
+    expect(saved).toBeNull();
+    expect(insertOne).not.toHaveBeenCalled();
   });
 });

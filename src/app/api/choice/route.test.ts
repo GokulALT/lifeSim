@@ -58,7 +58,7 @@ const baseCharacter = {
   flags: { isEmployed: true, isMarried: false, hasChildren: false, inPrison: false, hasDrugHabit: false, isStudent: false, inDebt: false, isTerminallyIll: false },
   financials: { bankBalance: 10000, salary: 50000, annualExpenses: 30000, assets: [] },
   career: { education: "bachelor", currentJob: "Dev", employer: "Corp", yearsInRole: 2, performance: 65, salaryGrade: "mid" },
-  relationships: [], log: [],
+  relationships: [], log: [] as { age: number; text: string }[],
   createdAt: "2026-01-01", updatedAt: "2026-01-01",
   pendingEvent: templateEvent as object | null,
 };
@@ -177,6 +177,32 @@ describe("POST /api/choice", () => {
   it("returns 409 when eventId is 'ai' but the pending event is a template", async () => {
     const res = await POST(makeRequest({ characterId: "char_001", eventId: "ai", choiceIndex: 0 }));
     expect(res.status).toBe(409);
+  });
+
+  it("filters the update on the loaded updatedAt", async () => {
+    await POST(makeRequest({ characterId: "char_001", eventId: "evt_1", choiceIndex: 0 }));
+    expect(mocks.updateOne.mock.calls[0][0]).toEqual({ _id: "char_001", updatedAt: "2026-01-01" });
+    expect(lastSet().updatedAt).not.toBe("2026-01-01");
+  });
+
+  it("returns 409 on a concurrent update and archives nothing", async () => {
+    // A full log: a successful save would archive the oldest entry
+    mockCharacter({ log: Array.from({ length: 500 }, (_, i) => ({ age: 0, text: `entry ${i}` })) });
+    mocks.updateOne.mockResolvedValue({ matchedCount: 0 });
+
+    const res = await POST(makeRequest({ characterId: "char_001", eventId: "evt_1", choiceIndex: 0 }));
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toBe("Conflict, please retry");
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+
+  it("archives log overflow after a successful save", async () => {
+    mockCharacter({ log: Array.from({ length: 500 }, (_, i) => ({ age: 0, text: `entry ${i}` })) });
+    const res = await POST(makeRequest({ characterId: "char_001", eventId: "evt_1", choiceIndex: 0 }));
+    expect(res.status).toBe(200);
+    expect((lastSet().log as object[]).length).toBe(500);
+    expect(mocks.insertOne).toHaveBeenCalledTimes(1);
+    expect(mocks.insertOne.mock.calls[0][0].entries).toEqual([{ age: 0, text: "entry 0" }]);
   });
 
   it("applies the success branch of a probabilistic choice", async () => {

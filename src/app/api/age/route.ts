@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getDb } from "@/lib/mongodb";
-import { tickStats } from "@/engine/statEngine";
+import { tickStats, clamp } from "@/engine/statEngine";
 import { selectTier } from "@/engine/tierSelector";
 import { resolveEvent, getFlagOverrideEvent, FALLBACK_EVENT } from "@/engine/eventResolver";
 import { generateRareEvent } from "@/engine/aiEventGenerator";
 import { PLUGINS } from "@/plugins";
 import { AgeRequestSchema } from "@/lib/schemas/api";
-import { toClient, toUpdateSet, appendLog, archiveOverflow } from "@/lib/characterServer";
-import type { Character } from "@/lib/schemas/character";
+import { toClient, appendLog, persistCharacter } from "@/lib/characterServer";
+import type { Character, StatBlock } from "@/lib/schemas/character";
 import type { User } from "@/lib/schemas/user";
 import type { EventTemplate, AiEvent } from "@/lib/schemas/event";
 import type { GamePlugin } from "@/lib/schemas/plugin";
@@ -58,30 +58,37 @@ export async function POST(req: NextRequest) {
   if (character.userId !== session.user.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   if (!character.isAlive) return NextResponse.json({ error: "Character is dead" }, { status: 400 });
   if (!user?.unlockedDLCs?.includes(character.packId)) return NextResponse.json({ error: "DLC not unlocked" }, { status: 403 });
+  // No rerolling: an unresolved event (e.g. a flag override like prison) must be answered first.
+  if (character.pendingEvent) {
+    return NextResponse.json({ error: "Resolve pending event first", event: character.pendingEvent }, { status: 409 });
+  }
 
   const plugin = PLUGINS[character.packId] ?? PLUGINS["core_realistic"];
 
   // 1. Tick stats
   let updated = tickStats(character);
   if (plugin.applyStatTick) {
-    Object.assign(updated.stats, plugin.applyStatTick(updated));
+    for (const [key, value] of Object.entries(plugin.applyStatTick(updated))) {
+      if (value !== undefined) updated.stats[key as keyof StatBlock] = clamp(value);
+    }
+    if (updated.stats.health <= 0) {
+      updated.stats.health = 0;
+      updated.isAlive = false;
+    }
   }
 
   // 2. Death: no event this turn
   let event: EventTemplate | AiEvent | null = null;
   if (!updated.isAlive) {
-    updated = await appendLog(updated, { age: updated.age, text: `You died at age ${updated.age}.` }, db);
+    updated = appendLog(updated, { age: updated.age, text: `You died at age ${updated.age}.` });
   } else {
     event = await selectEvent(updated, plugin, db);
-    updated = await archiveOverflow(updated, db); // tickStats may have pushed log entries
   }
-  updated = { ...updated, pendingEvent: event };
 
-  // 3. Save updated character (pending event is the server's source of truth for /api/choice)
-  await db.collection<Character>("characters").updateOne(
-    { _id: characterId },
-    { $set: toUpdateSet(updated) }
-  );
+  // 3. Save (pending event is the server's source of truth for /api/choice).
+  //    Conditional on the updatedAt we loaded, so overlapping requests cannot clobber each other.
+  const saved = await persistCharacter(db, { ...updated, pendingEvent: event }, character.updatedAt);
+  if (!saved) return NextResponse.json({ error: "Conflict, please retry" }, { status: 409 });
 
-  return NextResponse.json({ character: toClient(updated), event });
+  return NextResponse.json({ character: toClient(saved), event });
 }

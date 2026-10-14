@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   getFlagOverrideEvent: vi.fn(),
   resolveEvent:         vi.fn(),
   generateRareEvent:    vi.fn(),
+  applyStatTick:        vi.fn(),
 }));
 
 // Mock auth — return a session for user_001 by default
@@ -29,7 +30,10 @@ vi.mock("@/lib/mongodb", () => ({
 }));
 
 // Mock engine functions to be deterministic
-vi.mock("@/engine/statEngine",       () => ({ tickStats: mocks.tickStats, applyEffects: mocks.applyEffects }));
+vi.mock("@/engine/statEngine", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/engine/statEngine")>();
+  return { clamp: actual.clamp, tickStats: mocks.tickStats, applyEffects: mocks.applyEffects };
+});
 vi.mock("@/engine/tierSelector",     () => ({ selectTier: mocks.selectTier }));
 vi.mock("@/engine/eventResolver", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/engine/eventResolver")>();
@@ -40,6 +44,16 @@ vi.mock("@/engine/eventResolver", async (importOriginal) => {
   };
 });
 vi.mock("@/engine/aiEventGenerator", () => ({ generateRareEvent: mocks.generateRareEvent }));
+// Plugin registry with an overridable stat tick
+vi.mock("@/plugins", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/plugins")>();
+  return {
+    PLUGINS: {
+      ...actual.PLUGINS,
+      core_realistic: { ...actual.PLUGINS.core_realistic, applyStatTick: mocks.applyStatTick },
+    },
+  };
+});
 
 import { POST } from "./route";
 import { NextRequest } from "next/server";
@@ -104,6 +118,7 @@ describe("POST /api/age", () => {
     mocks.getFlagOverrideEvent.mockResolvedValue(null);
     mocks.resolveEvent.mockResolvedValue(commonEvent);
     mocks.generateRareEvent.mockResolvedValue(null);
+    mocks.applyStatTick.mockReturnValue({});
   });
 
   it("returns 400 for missing characterId", async () => {
@@ -135,7 +150,8 @@ describe("POST /api/age", () => {
     const res = await POST(makeRequest({ characterId: "char_001" }));
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.event).toBeDefined();
+    expect(body.event).not.toBeNull();
+    expect(typeof body.event.eventText).toBe("string");
     expect(body.character).toBeDefined();
   });
 
@@ -153,6 +169,70 @@ describe("POST /api/age", () => {
     expect(set.pendingEvent).toEqual(body.event);
     expect(set.pendingEvent).toEqual(commonEvent);
     expect("_id" in set).toBe(false);
+    // Optimistic concurrency: filter on the updatedAt value as loaded
+    expect(mocks.updateOne.mock.calls[0][0]).toEqual({ _id: "char_001", updatedAt: "2026-01-01" });
+    expect(set.updatedAt).not.toBe("2026-01-01");
+  });
+
+  it("returns 409 on a concurrent update and archives nothing", async () => {
+    const fullLog = Array.from({ length: 500 }, (_, i) => ({ age: 0, text: `entry ${i}` }));
+    mockLookups({ ...baseCharacter, log: fullLog });
+    // tickStats pushes one entry, so a successful save would archive the oldest
+    mocks.tickStats.mockImplementation((c: { age: number; log: object[] }) => {
+      const next = structuredClone(c);
+      next.age += 1;
+      next.log.push({ age: next.age, text: "You were let go." });
+      return next;
+    });
+    mocks.updateOne.mockResolvedValue({ matchedCount: 0 });
+
+    const res = await POST(makeRequest({ characterId: "char_001" }));
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toBe("Conflict, please retry");
+    expect(mocks.insertOne).not.toHaveBeenCalled();
+  });
+
+  it("archives log overflow after a successful save", async () => {
+    const fullLog = Array.from({ length: 500 }, (_, i) => ({ age: 0, text: `entry ${i}` }));
+    mockLookups({ ...baseCharacter, log: fullLog });
+    mocks.tickStats.mockImplementation((c: { age: number; log: object[] }) => {
+      const next = structuredClone(c);
+      next.age += 1;
+      next.log.push({ age: next.age, text: "You were let go." });
+      return next;
+    });
+
+    const res = await POST(makeRequest({ characterId: "char_001" }));
+    expect(res.status).toBe(200);
+    expect((lastSet().log as object[]).length).toBe(500);
+    expect(mocks.insertOne).toHaveBeenCalledTimes(1);
+    expect(mocks.insertOne.mock.calls[0][0].entries).toEqual([{ age: 0, text: "entry 0" }]);
+  });
+
+  it("returns 409 with the pending event when one is unresolved", async () => {
+    mockLookups({ ...baseCharacter, pendingEvent: commonEvent });
+    const res = await POST(makeRequest({ characterId: "char_001" }));
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toBe("Resolve pending event first");
+    expect(body.event).toEqual(commonEvent);
+    expect(mocks.tickStats).not.toHaveBeenCalled();
+    expect(mocks.updateOne).not.toHaveBeenCalled();
+  });
+
+  it("clamps plugin stat tick output and treats health <= 0 as death", async () => {
+    mocks.applyStatTick.mockReturnValue({ health: -5, happiness: 150 });
+
+    const res = await POST(makeRequest({ characterId: "char_001" }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.event).toBeNull();
+    expect(body.character.isAlive).toBe(false);
+    expect(body.character.stats.health).toBe(0);
+    expect(body.character.stats.happiness).toBe(100);
+    expect(mocks.resolveEvent).not.toHaveBeenCalled();
+    expect(mocks.generateRareEvent).not.toHaveBeenCalled();
+    expect(lastSet().log).toContainEqual({ age: 26, text: "You died at age 26." });
   });
 
   // Review Focus #3: full fallback chain
