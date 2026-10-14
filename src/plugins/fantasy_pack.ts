@@ -3,6 +3,7 @@ import type { GamePlugin } from "@/lib/schemas/plugin";
 export const fantasyPack: GamePlugin = {
   id:    "fantasy_world_pack_v1",
   label: "Fantasy World (Coming Soon)",
+  comingSoon: true,
   extraStats: [
     { key: "mana",   label: "Mana",   icon: "🔮" },
     { key: "honor",  label: "Honor",  icon: "⚔️" },

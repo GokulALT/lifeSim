@@ -17,6 +17,7 @@ export interface CareerTrack {
 export interface GamePlugin {
   id:          string;
   label:       string;
+  comingSoon?: boolean;
   extraStats:  StatDefinition[];
   careerTracks: CareerTrack[];
   seedEvents: {

@@ -34,6 +34,11 @@ describe("PLUGINS registry", () => {
     expect(PLUGINS["fantasy_world_pack_v1"]).toBeDefined();
   });
 
+  it("only the fantasy stub is comingSoon", () => {
+    expect(PLUGINS["fantasy_world_pack_v1"].comingSoon).toBe(true);
+    expect(PLUGINS["core_realistic"].comingSoon).toBeFalsy();
+  });
+
   it("unknown packId falls back to core_realistic", () => {
     const plugin = PLUGINS["unknown_pack"] ?? PLUGINS["core_realistic"];
     expect(plugin.id).toBe("core_realistic");

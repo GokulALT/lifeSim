@@ -5,6 +5,7 @@ import { getDb } from "@/lib/mongodb";
 import { CreateCharacterSchema } from "@/lib/schemas";
 import type { Character, User } from "@/lib/schemas";
 import { toClient } from "@/lib/characterServer";
+import { PLUGINS } from "@/plugins";
 
 function makeDefaultCharacter(userId: string, data: ReturnType<typeof CreateCharacterSchema.parse>): Character {
   const now = new Date().toISOString();
@@ -63,6 +64,11 @@ export async function POST(req: NextRequest) {
   }
   const parsed = CreateCharacterSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+
+  const plugin = PLUGINS[parsed.data.packId];
+  if (!plugin || plugin.comingSoon) {
+    return NextResponse.json({ error: "Pack not available yet" }, { status: 400 });
+  }
 
   const db   = await getDb();
   const user = await db.collection<User>("users").findOne({ _id: session.user.id });

@@ -64,8 +64,24 @@ describe("/api/characters", () => {
     });
 
     it("returns 403 when the pack is not unlocked", async () => {
-      const res = await POST(makeRequest({ ...validBody, packId: "fantasy_pack" }));
+      mocks.findOne.mockResolvedValue({ _id: "user_001", email: "x@x.com", unlockedDLCs: [] });
+      const res = await POST(makeRequest(validBody));
       expect(res.status).toBe(403);
+      expect(mocks.insertOne).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 for a comingSoon pack even when unlocked", async () => {
+      mocks.findOne.mockResolvedValue({ _id: "user_001", email: "x@x.com", unlockedDLCs: ["fantasy_world_pack_v1"] });
+      const res = await POST(makeRequest({ ...validBody, packId: "fantasy_world_pack_v1" }));
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toBe("Pack not available yet");
+      expect(mocks.insertOne).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 for an unknown pack", async () => {
+      const res = await POST(makeRequest({ ...validBody, packId: "no_such_pack" }));
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toBe("Pack not available yet");
       expect(mocks.insertOne).not.toHaveBeenCalled();
     });
 
