@@ -1,0 +1,48 @@
+[
+  {
+    "_id": "evt_flag_prison_fight",
+    "packId": "core_realistic",
+    "tier": "flag_override",
+    "conditions": { "ageMin": 0, "ageMax": 120, "requiredFlags": ["inPrison"], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "An inmate corners you in the yard. You're going to have to deal with this.",
+    "choices": [
+      { "text": "Stand your ground.", "effects": { "karma": 5 }, "probabilistic": { "chance": 0.5, "success": { "looks": -2, "outcomeText": "You held your own. Word got around." }, "failure": { "health": -20, "outcomeText": "You took a bad beating." } } },
+      { "text": "Back down.", "effects": { "happiness": -15 }, "outcomeText": "It won't be the last time they come for you." },
+      { "text": "Report it to a guard.", "effects": { "karma": -5, "happiness": -5 }, "outcomeText": "Some inmates now see you as a snitch." }
+    ]
+  },
+  {
+    "_id": "evt_flag_debt_collector",
+    "packId": "core_realistic",
+    "tier": "flag_override",
+    "conditions": { "ageMin": 0, "ageMax": 120, "requiredFlags": ["inDebt"], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "A debt collection agency has started calling your mobile. Three times yesterday.",
+    "choices": [
+      { "text": "Answer and negotiate a payment plan.", "effects": { "happiness": -5, "bankBalance": -2000 }, "outcomeText": "They agreed to monthly installments. The calls stop." },
+      { "text": "Block the number.", "effects": { "happiness": -10, "karma": -5 }, "outcomeText": "They'll find another way to reach you." },
+      { "text": "Consult a financial counsellor.", "effects": { "bankBalance": -300, "happiness": 5 }, "outcomeText": "You have a plan now. It's manageable." }
+    ]
+  },
+  {
+    "_id": "evt_flag_drug_withdrawal",
+    "packId": "core_realistic",
+    "tier": "flag_override",
+    "conditions": { "ageMin": 0, "ageMax": 120, "requiredFlags": ["hasDrugHabit"], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "You wake up shaking. The craving is overwhelming. You know what you need to do — both options are clear.",
+    "choices": [
+      { "text": "Use again.", "effects": { "health": -10, "happiness": 5, "karma": -10 }, "outcomeText": "The relief is immediate and hollow." },
+      { "text": "Call a support line and push through.", "effects": { "health": -5, "karma": 15, "happiness": -10 }, "outcomeText": "The hardest day in a long time. But you made it." }
+    ]
+  },
+  {
+    "_id": "evt_flag_terminal_will",
+    "packId": "core_realistic",
+    "tier": "flag_override",
+    "conditions": { "ageMin": 0, "ageMax": 120, "requiredFlags": ["isTerminallyIll"], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "Your doctor asks if you've thought about end-of-life planning. You haven't, but you should.",
+    "choices": [
+      { "text": "Write a will and set up a health directive.", "effects": { "happiness": 5, "karma": 10 }, "outcomeText": "It was sobering, but you feel a strange peace." },
+      { "text": "Tell them you're not ready to think about it.", "effects": { "happiness": -5 }, "outcomeText": "The topic hangs over you." }
+    ]
+  }
+]

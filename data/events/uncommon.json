@@ -1,0 +1,70 @@
+[
+  {
+    "_id": "evt_promotion_offer",
+    "packId": "core_realistic",
+    "tier": "uncommon",
+    "conditions": { "ageMin": 25, "ageMax": 55, "requiredFlags": ["isEmployed"], "blockedFlags": [], "statThresholds": { "careerPerformance": { "min": 60 } } },
+    "eventText": "Your manager pulls you aside. There's a senior role opening and your name has come up.",
+    "choices": [
+      { "text": "Express strong interest.", "effects": { "careerPerformance": 5, "happiness": 8 }, "probabilistic": { "chance": 0.65, "success": { "bankBalance": 12000, "outcomeText": "You got the promotion. $12,000 raise effective immediately." }, "failure": { "happiness": -10, "outcomeText": "They went with an external candidate. Disappointing." } } },
+      { "text": "Say you need to think about it.", "effects": { "careerPerformance": -5 }, "outcomeText": "The window closed. They picked someone else." }
+    ]
+  },
+  {
+    "_id": "evt_inheritance",
+    "packId": "core_realistic",
+    "tier": "uncommon",
+    "conditions": { "ageMin": 25, "ageMax": 80, "requiredFlags": [], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "A distant relative you barely knew has passed away and left you something in their will.",
+    "choices": [
+      { "text": "Accept the inheritance.", "effects": { "bankBalance": 35000, "happiness": 5, "karma": -3 }, "outcomeText": "You feel a little guilty but the money is real." },
+      { "text": "Donate it to charity in their name.", "effects": { "karma": 20, "happiness": 10 }, "outcomeText": "It felt like the right thing to do." }
+    ]
+  },
+  {
+    "_id": "evt_serious_illness",
+    "packId": "core_realistic",
+    "tier": "uncommon",
+    "conditions": { "ageMin": 30, "ageMax": 90, "requiredFlags": [], "blockedFlags": ["isTerminallyIll"], "statThresholds": { "health": { "max": 60 } } },
+    "eventText": "Routine bloodwork comes back with results your doctor wants to discuss urgently.",
+    "choices": [
+      { "text": "See the specialist immediately.", "effects": { "bankBalance": -3000, "happiness": -10 }, "probabilistic": { "chance": 0.7, "success": { "health": 10, "outcomeText": "Caught early. Treatment is straightforward." }, "failure": { "health": -15, "outcomeText": "More serious than hoped. Long road ahead." } } },
+      { "text": "Delay the appointment — you're busy.", "effects": { "health": -10, "karma": -5 }, "outcomeText": "Three months later, the situation was worse." }
+    ]
+  },
+  {
+    "_id": "evt_startup_pitch",
+    "packId": "core_realistic",
+    "tier": "uncommon",
+    "conditions": { "ageMin": 22, "ageMax": 50, "requiredFlags": [], "blockedFlags": [], "statThresholds": { "smarts": { "min": 55 } } },
+    "eventText": "A friend wants you to co-found a startup with them. They have the idea; you'd handle the technical side.",
+    "choices": [
+      { "text": "Quit your job and go all in.", "effects": { "happiness": 10 }, "probabilistic": { "chance": 0.25, "success": { "bankBalance": 150000, "outcomeText": "Three years later, you sold the company." }, "failure": { "bankBalance": -20000, "happiness": -20, "outcomeText": "It failed after 18 months. You burned through savings." } } },
+      { "text": "Work on it as a side project.", "effects": { "happiness": 5, "health": -5 }, "outcomeText": "Balancing both is exhausting, but you're managing." },
+      { "text": "Pass.", "effects": { "happiness": -5 }, "outcomeText": "You watched them build it without you." }
+    ]
+  },
+  {
+    "_id": "evt_romantic_proposal",
+    "packId": "core_realistic",
+    "tier": "uncommon",
+    "conditions": { "ageMin": 20, "ageMax": 45, "requiredFlags": [], "blockedFlags": ["isMarried"], "statThresholds": {} },
+    "eventText": "Your partner of two years surprises you with a ring at dinner.",
+    "choices": [
+      { "text": "Say yes.", "effects": { "happiness": 25, "bankBalance": -5000 }, "outcomeText": "You're engaged. The table next to you burst into applause." },
+      { "text": "Ask for more time.", "effects": { "happiness": -10 }, "outcomeText": "They were hurt. The relationship is now strained." },
+      { "text": "Say no.", "effects": { "happiness": -20, "karma": -5 }, "outcomeText": "It's over. You both knew it as soon as the word left your mouth." }
+    ]
+  },
+  {
+    "_id": "evt_redundancy",
+    "packId": "core_realistic",
+    "tier": "uncommon",
+    "conditions": { "ageMin": 22, "ageMax": 60, "requiredFlags": ["isEmployed"], "blockedFlags": [], "statThresholds": { "careerPerformance": { "max": 40 } } },
+    "eventText": "The company is restructuring. Your role has been flagged in the review.",
+    "choices": [
+      { "text": "Fight for your position — request a meeting with HR.", "effects": { "happiness": -5 }, "probabilistic": { "chance": 0.4, "success": { "careerPerformance": 10, "outcomeText": "You made a compelling case. You keep your job." }, "failure": { "bankBalance": 8000, "outcomeText": "You were let go anyway but negotiated a better payout." } } },
+      { "text": "Accept the redundancy package.", "effects": { "bankBalance": 8000, "happiness": -15 }, "outcomeText": "The cheque cleared. Now what?" }
+    ]
+  }
+]

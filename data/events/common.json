@@ -1,0 +1,92 @@
+[
+  {
+    "_id": "evt_coworker_credit",
+    "packId": "core_realistic",
+    "tier": "common",
+    "conditions": { "ageMin": 18, "ageMax": 65, "requiredFlags": ["isEmployed"], "blockedFlags": ["inPrison"], "statThresholds": {} },
+    "eventText": "A coworker takes credit for your idea in a team meeting.",
+    "choices": [
+      { "text": "Confront them publicly.", "effects": { "happiness": -5, "karma": 5 }, "probabilistic": { "chance": 0.35, "success": { "smarts": 3, "outcomeText": "You made your case. Your manager noticed." }, "failure": { "happiness": -10, "outcomeText": "It came across as petty. You looked worse." } } },
+      { "text": "Let it go.", "effects": { "happiness": -8 }, "outcomeText": "You kept the peace, but it stings." },
+      { "text": "Talk to your manager privately.", "effects": { "happiness": 5, "careerPerformance": 3 }, "outcomeText": "Your manager appreciated the professionalism." }
+    ]
+  },
+  {
+    "_id": "evt_family_call",
+    "packId": "core_realistic",
+    "tier": "common",
+    "conditions": { "ageMin": 16, "ageMax": 80, "requiredFlags": [], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "Your mother calls and wants to talk for an hour. You're busy.",
+    "choices": [
+      { "text": "Take the call.", "effects": { "happiness": 5 }, "outcomeText": "It was nice to catch up." },
+      { "text": "Send her to voicemail.", "effects": { "happiness": -3, "karma": -5 }, "outcomeText": "You feel a twinge of guilt." }
+    ]
+  },
+  {
+    "_id": "evt_car_repair",
+    "packId": "core_realistic",
+    "tier": "common",
+    "conditions": { "ageMin": 17, "ageMax": 80, "requiredFlags": [], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "Your car makes an alarming grinding noise on the way to work.",
+    "choices": [
+      { "text": "Take it to the mechanic immediately.", "effects": { "bankBalance": -800, "happiness": -5 }, "outcomeText": "It was the brake pads. Cheaper than it could have been." },
+      { "text": "Ignore it for now.", "effects": { "karma": -3 }, "probabilistic": { "chance": 0.4, "success": { "outcomeText": "It sorted itself out. Lucky." }, "failure": { "bankBalance": -2500, "happiness": -15, "outcomeText": "The engine seized. Expensive mistake." } } }
+    ]
+  },
+  {
+    "_id": "evt_overtime_request",
+    "packId": "core_realistic",
+    "tier": "common",
+    "conditions": { "ageMin": 18, "ageMax": 65, "requiredFlags": ["isEmployed"], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "Your boss asks you to stay late three nights this week.",
+    "choices": [
+      { "text": "Agree willingly.", "effects": { "careerPerformance": 5, "happiness": -8, "bankBalance": 600 }, "outcomeText": "Your dedication was noticed. Your bank account appreciated it too." },
+      { "text": "Decline — you have plans.", "effects": { "happiness": 5, "careerPerformance": -3 }, "outcomeText": "Your boss seemed annoyed, but your sanity is intact." }
+    ]
+  },
+  {
+    "_id": "evt_neighbour_noise",
+    "packId": "core_realistic",
+    "tier": "common",
+    "conditions": { "ageMin": 18, "ageMax": 90, "requiredFlags": [], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "Your neighbour throws a loud party that goes until 3am.",
+    "choices": [
+      { "text": "Knock on their door and ask them to keep it down.", "effects": { "happiness": 3 }, "probabilistic": { "chance": 0.6, "success": { "outcomeText": "They apologised and turned it down." }, "failure": { "happiness": -5, "outcomeText": "They told you to lighten up." } } },
+      { "text": "Call the council noise line.", "effects": { "happiness": 5, "karma": -2 }, "outcomeText": "The music stopped an hour later. Worth it." },
+      { "text": "Put in earplugs and try to sleep.", "effects": { "happiness": -5 }, "outcomeText": "You survived, barely." }
+    ]
+  },
+  {
+    "_id": "evt_friend_hangout",
+    "packId": "core_realistic",
+    "tier": "common",
+    "conditions": { "ageMin": 12, "ageMax": 70, "requiredFlags": [], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "A friend invites you to catch up over dinner.",
+    "choices": [
+      { "text": "Go along.", "effects": { "happiness": 10, "bankBalance": -60 }, "outcomeText": "It was exactly what you needed." },
+      { "text": "Cancel at the last minute.", "effects": { "happiness": -3, "karma": -5 }, "outcomeText": "Your friend was disappointed. You stayed home anyway." }
+    ]
+  },
+  {
+    "_id": "evt_gym_temptation",
+    "packId": "core_realistic",
+    "tier": "common",
+    "conditions": { "ageMin": 16, "ageMax": 60, "requiredFlags": [], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "You've been meaning to join a gym for months. There's a sign-up deal on.",
+    "choices": [
+      { "text": "Join the gym.", "effects": { "bankBalance": -600, "health": 5, "looks": 3 }, "outcomeText": "You actually went three times this week." },
+      { "text": "Tell yourself you'll start next month.", "effects": { "happiness": -2 }, "outcomeText": "You won't." }
+    ]
+  },
+  {
+    "_id": "evt_work_presentation",
+    "packId": "core_realistic",
+    "tier": "common",
+    "conditions": { "ageMin": 22, "ageMax": 65, "requiredFlags": ["isEmployed"], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "You have to present the quarterly report to the leadership team.",
+    "choices": [
+      { "text": "Prepare thoroughly.", "effects": { "careerPerformance": 8, "happiness": 5 }, "outcomeText": "You nailed it. The CEO complimented your clarity." },
+      { "text": "Wing it.", "effects": {}, "probabilistic": { "chance": 0.3, "success": { "careerPerformance": 3, "outcomeText": "Surprisingly, you pulled it off." }, "failure": { "careerPerformance": -10, "happiness": -10, "outcomeText": "It was a disaster. You blanked on the third slide." } } }
+    ]
+  }
+]
