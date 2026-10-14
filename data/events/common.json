@@ -88,5 +88,133 @@
       { "text": "Prepare thoroughly.", "effects": { "careerPerformance": 8, "happiness": 5 }, "outcomeText": "You nailed it. The CEO complimented your clarity." },
       { "text": "Wing it.", "effects": {}, "probabilistic": { "chance": 0.3, "success": { "careerPerformance": 3, "outcomeText": "Surprisingly, you pulled it off." }, "failure": { "careerPerformance": -10, "happiness": -10, "outcomeText": "It was a disaster. You blanked on the third slide." } } }
     ]
+  },
+  {
+    "_id": "evt_child_first_steps",
+    "packId": "core_realistic",
+    "tier": "common",
+    "conditions": { "ageMin": 0, "ageMax": 3, "requiredFlags": [], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "You pull yourself up on the sofa and eye the gap across the living room. Everyone is watching.",
+    "choices": [
+      { "text": "Let go and walk.", "effects": { "health": 2 }, "probabilistic": { "chance": 0.6, "success": { "happiness": 8, "outcomeText": "You wobbled all the way across to cheers and applause." }, "failure": { "happiness": -3, "outcomeText": "You landed on your bottom. You'll try again tomorrow." } } },
+      { "text": "Crawl instead. It's faster.", "effects": { "happiness": 3 }, "outcomeText": "Walking can wait. You got there first anyway." }
+    ]
+  },
+  {
+    "_id": "evt_child_imaginary_friend",
+    "packId": "core_realistic",
+    "tier": "common",
+    "conditions": { "ageMin": 2, "ageMax": 5, "requiredFlags": [], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "You have invented an imaginary friend called Mr Biscuit. Your parents want to know why he needs his own chair at dinner.",
+    "choices": [
+      { "text": "Insist Mr Biscuit gets a chair.", "effects": { "happiness": 5, "smarts": 2 }, "outcomeText": "Mr Biscuit enjoyed his dinner. Your parents set an extra place for months." },
+      { "text": "Tell them Mr Biscuit moved away.", "effects": { "happiness": -2, "karma": 1 }, "outcomeText": "You missed him a little, but dinner was quieter." }
+    ]
+  },
+  {
+    "_id": "evt_child_tantrum_shops",
+    "packId": "core_realistic",
+    "tier": "common",
+    "conditions": { "ageMin": 3, "ageMax": 6, "requiredFlags": [], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "At the supermarket, your parent says no to the toy you have been staring at for ten minutes.",
+    "choices": [
+      { "text": "Throw a tantrum in the aisle.", "effects": { "karma": -2 }, "probabilistic": { "chance": 0.3, "success": { "happiness": 8, "outcomeText": "They gave in just to make it stop. You got the toy." }, "failure": { "happiness": -6, "outcomeText": "You were carried out screaming. No toy, and no dessert." } } },
+      { "text": "Ask nicely.", "effects": { "karma": 3, "happiness": 2 }, "outcomeText": "They said maybe for your birthday. You felt very grown up." },
+      { "text": "Sulk all the way to the checkout.", "effects": { "happiness": -3 }, "outcomeText": "Nobody noticed your sulking. Rude." }
+    ]
+  },
+  {
+    "_id": "evt_child_first_school_day",
+    "packId": "core_realistic",
+    "tier": "common",
+    "conditions": { "ageMin": 5, "ageMax": 6, "requiredFlags": [], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "It's your first day of school. The classroom is loud, bright, and full of strangers.",
+    "choices": [
+      { "text": "Introduce yourself to the kid next to you.", "effects": { "happiness": 6, "smarts": 2 }, "outcomeText": "You made a best friend before lunch." },
+      { "text": "Cling to your parent at the gate.", "effects": { "happiness": -5 }, "outcomeText": "They peeled you off eventually. By home time it wasn't so bad." },
+      { "text": "Head straight for the book corner.", "effects": { "smarts": 4, "happiness": 2 }, "outcomeText": "The teacher was impressed by how quietly you read." }
+    ]
+  },
+  {
+    "_id": "evt_child_playground_fight",
+    "packId": "core_realistic",
+    "tier": "common",
+    "conditions": { "ageMin": 6, "ageMax": 11, "requiredFlags": [], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "An older kid shoves you off the swings at recess and laughs about it with his friends.",
+    "choices": [
+      { "text": "Shove him back.", "effects": { "karma": -2 }, "probabilistic": { "chance": 0.5, "success": { "happiness": 6, "outcomeText": "He backed off. Nobody bothers you on the swings now." }, "failure": { "health": -5, "happiness": -8, "outcomeText": "You lost the scuffle and got detention as well." } } },
+      { "text": "Tell a teacher.", "effects": { "karma": 3, "happiness": -2 }, "outcomeText": "The teacher sorted it out, though a few kids called you a snitch." },
+      { "text": "Find another game to play.", "effects": { "happiness": -2, "smarts": 1 }, "outcomeText": "You found some new friends building forts in the sandpit." }
+    ]
+  },
+  {
+    "_id": "evt_child_lost_pet",
+    "packId": "core_realistic",
+    "tier": "common",
+    "conditions": { "ageMin": 7, "ageMax": 11, "requiredFlags": [], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "The family dog slipped out through the gate yesterday and still hasn't come home.",
+    "choices": [
+      { "text": "Put up posters around the neighbourhood.", "effects": { "health": 2, "karma": 2 }, "probabilistic": { "chance": 0.7, "success": { "happiness": 10, "outcomeText": "A neighbour called. She was two streets over, raiding someone's bin." }, "failure": { "happiness": -15, "outcomeText": "You never found her. You still think about her sometimes." } } },
+      { "text": "Wait for her to come home on her own.", "effects": {}, "probabilistic": { "chance": 0.4, "success": { "happiness": 8, "outcomeText": "She wandered home three days later, muddy and very pleased with herself." }, "failure": { "happiness": -12, "outcomeText": "She never came back. The house feels quieter." } } }
+    ]
+  },
+  {
+    "_id": "evt_child_science_fair",
+    "packId": "core_realistic",
+    "tier": "common",
+    "conditions": { "ageMin": 8, "ageMax": 11, "requiredFlags": [], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "Your school is holding a science fair. Everyone else seems to be building a volcano.",
+    "choices": [
+      { "text": "Build something original.", "effects": { "smarts": 3 }, "probabilistic": { "chance": 0.4, "success": { "happiness": 10, "outcomeText": "Your homemade weather station won first prize." }, "failure": { "happiness": -4, "outcomeText": "It didn't work on the day, but you learned a lot building it." } } },
+      { "text": "Build a volcano like everyone else.", "effects": { "happiness": 3 }, "outcomeText": "It erupted on cue. Solid participation ribbon." },
+      { "text": "Fake being sick that day.", "effects": { "karma": -3, "happiness": 2 }, "outcomeText": "You stayed home and watched cartoons. Nobody was fooled." }
+    ]
+  },
+  {
+    "_id": "evt_teen_big_exam",
+    "packId": "core_realistic",
+    "tier": "common",
+    "conditions": { "ageMin": 12, "ageMax": 17, "requiredFlags": [], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "You have a big exam tomorrow, and your friends are messaging you to join them online.",
+    "choices": [
+      { "text": "Study all evening.", "effects": { "smarts": 4, "happiness": -3 }, "outcomeText": "You walked out of the exam knowing you'd nailed it." },
+      { "text": "Play with your friends instead.", "effects": { "happiness": 5 }, "probabilistic": { "chance": 0.3, "success": { "outcomeText": "You winged it and somehow passed." }, "failure": { "smarts": -2, "happiness": -6, "outcomeText": "You failed. Your parents were not impressed." } } },
+      { "text": "Study for an hour, then log on.", "effects": { "smarts": 2, "happiness": 2 }, "outcomeText": "A respectable pass and a fun night. Balance." }
+    ]
+  },
+  {
+    "_id": "evt_teen_crush",
+    "packId": "core_realistic",
+    "tier": "common",
+    "conditions": { "ageMin": 13, "ageMax": 17, "requiredFlags": [], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "You have a huge crush on someone in your class. You can't stop thinking about them.",
+    "choices": [
+      { "text": "Ask them out.", "effects": {}, "probabilistic": { "chance": 0.45, "success": { "happiness": 15, "outcomeText": "They said yes! You went to the movies and barely watched the film." }, "failure": { "happiness": -10, "looks": -1, "outcomeText": "They laughed. The whole year group knew by lunchtime." } } },
+      { "text": "Write about it in your diary.", "effects": { "happiness": -2, "smarts": 1 }, "outcomeText": "Your secret is safe. For now." },
+      { "text": "Tell your best friend.", "effects": { "happiness": 3 }, "outcomeText": "They promised not to tell anyone, and actually kept it." }
+    ]
+  },
+  {
+    "_id": "evt_teen_party_pressure",
+    "packId": "core_realistic",
+    "tier": "common",
+    "conditions": { "ageMin": 14, "ageMax": 17, "requiredFlags": [], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "At a party, some older kids hand you a drink and laugh when you hesitate.",
+    "choices": [
+      { "text": "Drink it.", "effects": { "happiness": 4, "health": -5, "karma": -2 }, "outcomeText": "You felt cool for an hour, then sick for the rest of the night." },
+      { "text": "Say no and stay at the party.", "effects": { "karma": 3, "happiness": -2 }, "outcomeText": "A couple of people teased you. Most didn't care at all." },
+      { "text": "Text your parents for a lift home.", "effects": { "happiness": -4, "health": 2 }, "outcomeText": "An awkward ride home, but you were glad to be out of there." }
+    ]
+  },
+  {
+    "_id": "evt_teen_weekend_job",
+    "packId": "core_realistic",
+    "tier": "common",
+    "conditions": { "ageMin": 15, "ageMax": 17, "requiredFlags": [], "blockedFlags": [], "statThresholds": {} },
+    "eventText": "The café down the road is looking for weekend staff. The pay isn't much, but it's money.",
+    "choices": [
+      { "text": "Apply for the job.", "effects": { "bankBalance": 2500, "happiness": -2 }, "outcomeText": "You spent the year making coffee and quietly saving up." },
+      { "text": "Keep your weekends free.", "effects": { "happiness": 4 }, "outcomeText": "Lazy Saturdays are worth more than money. For now." }
+    ]
   }
 ]

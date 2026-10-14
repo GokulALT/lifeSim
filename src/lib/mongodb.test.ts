@@ -106,4 +106,37 @@ describe("event seed data", () => {
     const ids = events.map((e) => (e as { _id: string })._id);
     expect(new Set(ids).size).toBe(ids.length);
   });
+
+  type SeedEvent = {
+    _id: string; tier: string; packId: string;
+    conditions: { ageMin: number; ageMax: number; requiredFlags: string[] };
+    choices: { text: string; effects?: { setFlags?: Record<string, boolean> } }[];
+  };
+  const byId = (id: string) => (events as SeedEvent[]).find((e) => e._id === id);
+
+  it("has at least 5 core common events for ages 0-11 spread across age bands", () => {
+    const child = (events as SeedEvent[]).filter(
+      (e) => e.tier === "common" && e.packId === "core_realistic" && e.conditions.ageMax <= 11,
+    );
+    expect(child.length).toBeGreaterThanOrEqual(5);
+    for (const age of [0, 3, 5, 8, 11]) {
+      expect(child.some((e) => e.conditions.ageMin <= age && e.conditions.ageMax >= age)).toBe(true);
+    }
+  });
+
+  it("has at least 3 core common events for ages 12-17", () => {
+    const teen = (events as SeedEvent[]).filter(
+      (e) => e.tier === "common" && e.packId === "core_realistic" && e.conditions.ageMin >= 12 && e.conditions.ageMax <= 17,
+    );
+    expect(teen.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("accepting the romantic proposal sets isMarried", () => {
+    const yes = byId("evt_romantic_proposal")?.choices.find((c) => c.text === "Say yes.");
+    expect(yes?.effects?.setFlags).toEqual({ isMarried: true });
+  });
+
+  it("the startup pitch requires employment", () => {
+    expect(byId("evt_startup_pitch")?.conditions.requiredFlags).toContain("isEmployed");
+  });
 });
