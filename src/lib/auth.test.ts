@@ -45,3 +45,57 @@ describe("routeDecision", () => {
     expect(routeDecision("/api/age", true)).toBe("allow");
   });
 });
+
+describe("routeDecision prefix edges", () => {
+  it("does not treat lookalike prefixes as special", async () => {
+    const { routeDecision } = await import("./auth.config");
+    expect(routeDecision("/api/authx", false)).toBe("unauthorized");
+    expect(routeDecision("/api", false)).toBe("unauthorized");
+    expect(routeDecision("/loginx", false)).toBe("redirect-login");
+  });
+});
+
+describe("authorized callback mapping", () => {
+  type AuthorizedFn = (args: { auth: unknown; request: { nextUrl: URL } }) => unknown;
+  async function call(path: string, loggedIn: boolean) {
+    const { authConfig } = await import("./auth.config");
+    const fn = authConfig.callbacks.authorized as unknown as AuthorizedFn;
+    return fn({
+      auth: loggedIn ? { user: { id: "u1" } } : null,
+      request: { nextUrl: new URL(`http://localhost:3000${path}`) },
+    });
+  }
+
+  it("maps unauthorized to a 401 JSON response", async () => {
+    const res = (await call("/api/age", false)) as Response;
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "Unauthorized" });
+  });
+
+  it("maps redirect-login to a redirect to /login", async () => {
+    const res = (await call("/play", false)) as Response;
+    expect(new URL(res.headers.get("location")!).pathname).toBe("/login");
+  });
+
+  it("maps allow to true", async () => {
+    expect(await call("/", true)).toBe(true);
+  });
+});
+
+describe("parseCredentials", () => {
+  it("rejects operator objects and non-string values", async () => {
+    const { parseCredentials } = await import("./authUtils");
+    expect(parseCredentials({ email: { $regex: "^a" }, password: "x" })).toBeNull();
+    expect(parseCredentials({ email: "a@b.co", password: { $ne: 1 } })).toBeNull();
+    expect(parseCredentials({ email: "a@b.co", password: "x".repeat(73) })).toBeNull();
+    expect(parseCredentials(undefined)).toBeNull();
+  });
+
+  it("normalises email by trim + lowercase", async () => {
+    const { parseCredentials } = await import("./authUtils");
+    expect(parseCredentials({ email: "  A@B.Co ", password: "pw" })).toEqual({
+      email: "a@b.co",
+      password: "pw",
+    });
+  });
+});

@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { getDb } from "./mongodb";
-import { verifyPassword } from "./authUtils";
+import { verifyPassword, parseCredentials } from "./authUtils";
 import { authConfig } from "./auth.config";
 import type { User } from "./schemas";
 
@@ -14,15 +14,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        const creds = parseCredentials(credentials);
+        if (!creds) return null;
 
         const db   = await getDb();
-        const user = await db
-          .collection<User>("users")
-          .findOne({ email: credentials.email as string });
+        const user = await db.collection<User>("users").findOne({ email: creds.email });
         if (!user) return null;
 
-        const valid = await verifyPassword(credentials.password as string, user.passwordHash);
+        const valid = await verifyPassword(creds.password, user.passwordHash);
         if (!valid) return null;
 
         return { id: String(user._id), email: user.email };

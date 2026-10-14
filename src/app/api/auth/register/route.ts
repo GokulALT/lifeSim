@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/lib/mongodb";
-import { hashPassword } from "@/lib/authUtils";
+import { hashPassword, emailSchema } from "@/lib/authUtils";
 import type { User } from "@/lib/schemas";
 import { randomUUID } from "crypto";
 
 const RegisterSchema = z.object({
-  email:    z.string().email(),
-  password: z.string().min(8),
+  email:    emailSchema,
+  password: z.string().min(8).max(72),
 });
 
 export async function POST(req: NextRequest) {
@@ -41,6 +41,13 @@ export async function POST(req: NextRequest) {
     activeCharacterId: null,
   };
 
-  await users.insertOne(user);
+  try {
+    await users.insertOne(user);
+  } catch (err) {
+    if (typeof err === "object" && err !== null && (err as { code?: unknown }).code === 11000) {
+      return NextResponse.json({ error: "Email already registered" }, { status: 409 });
+    }
+    throw err;
+  }
   return NextResponse.json({ ok: true }, { status: 201 });
 }
