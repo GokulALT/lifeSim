@@ -31,6 +31,10 @@ async function seed() {
     { packId: 1, tier: 1, "conditions.ageMin": 1, "conditions.ageMax": 1 }
   );
   console.log("Index created");
+
+  await db.collection("characters").createIndex({ userId: 1, isAlive: 1 });
+  await db.collection("users").createIndex({ email: 1 }, { unique: true });
+  console.log("Character and user indexes created");
   await client.close();
 }
 
