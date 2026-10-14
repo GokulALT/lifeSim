@@ -36,7 +36,7 @@
     "_id": "evt_startup_pitch",
     "packId": "core_realistic",
     "tier": "uncommon",
-    "conditions": { "ageMin": 22, "ageMax": 50, "requiredFlags": [], "blockedFlags": [], "statThresholds": { "smarts": { "min": 55 } } },
+    "conditions": { "ageMin": 22, "ageMax": 50, "requiredFlags": ["isEmployed"], "blockedFlags": [], "statThresholds": { "smarts": { "min": 55 } } },
     "eventText": "A friend wants you to co-found a startup with them. They have the idea; you'd handle the technical side.",
     "choices": [
       { "text": "Quit your job and go all in.", "effects": { "happiness": 10 }, "probabilistic": { "chance": 0.25, "success": { "bankBalance": 150000, "outcomeText": "Three years later, you sold the company." }, "failure": { "bankBalance": -20000, "happiness": -20, "outcomeText": "It failed after 18 months. You burned through savings." } } },
@@ -51,7 +51,7 @@
     "conditions": { "ageMin": 20, "ageMax": 45, "requiredFlags": [], "blockedFlags": ["isMarried"], "statThresholds": {} },
     "eventText": "Your partner of two years surprises you with a ring at dinner.",
     "choices": [
-      { "text": "Say yes.", "effects": { "happiness": 25, "bankBalance": -5000 }, "outcomeText": "You're engaged. The table next to you burst into applause." },
+      { "text": "Say yes.", "effects": { "happiness": 25, "bankBalance": -5000, "setFlags": { "isMarried": true } }, "outcomeText": "You're engaged. The table next to you burst into applause." },
       { "text": "Ask for more time.", "effects": { "happiness": -10 }, "outcomeText": "They were hurt. The relationship is now strained." },
       { "text": "Say no.", "effects": { "happiness": -20, "karma": -5 }, "outcomeText": "It's over. You both knew it as soon as the word left your mouth." }
     ]

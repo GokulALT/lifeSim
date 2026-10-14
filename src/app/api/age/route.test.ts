@@ -1,5 +1,5 @@
 // src/app/api/age/route.test.ts
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   auth:                 vi.fn(),
@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   resolveEvent:         vi.fn(),
   generateRareEvent:    vi.fn(),
   applyStatTick:        vi.fn(),
+  careerTick:           vi.fn(),
 }));
 
 // Mock auth — return a session for user_001 by default
@@ -39,11 +40,13 @@ vi.mock("@/engine/eventResolver", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/engine/eventResolver")>();
   return {
     FALLBACK_EVENT:       actual.FALLBACK_EVENT,
+    FLAG_OVERRIDE_CHANCE: actual.FLAG_OVERRIDE_CHANCE,
     getFlagOverrideEvent: mocks.getFlagOverrideEvent,
     resolveEvent:         mocks.resolveEvent,
   };
 });
 vi.mock("@/engine/aiEventGenerator", () => ({ generateRareEvent: mocks.generateRareEvent }));
+vi.mock("@/engine/careerEngine",     () => ({ careerTick: mocks.careerTick }));
 // Plugin registry with an overridable stat tick
 vi.mock("@/plugins", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/plugins")>();
@@ -56,6 +59,7 @@ vi.mock("@/plugins", async (importOriginal) => {
 });
 
 import { POST } from "./route";
+import { FLAG_OVERRIDE_CHANCE } from "@/engine/eventResolver";
 import { NextRequest } from "next/server";
 
 function makeRequest(body: object | string) {
@@ -106,6 +110,8 @@ function lastSet(): Record<string, unknown> {
 }
 
 describe("POST /api/age", () => {
+  let randomSpy: MockInstance<() => number>;
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.auth.mockResolvedValue({ user: { id: "user_001" } });
@@ -119,6 +125,13 @@ describe("POST /api/age", () => {
     mocks.resolveEvent.mockResolvedValue(commonEvent);
     mocks.generateRareEvent.mockResolvedValue(null);
     mocks.applyStatTick.mockReturnValue({});
+    mocks.careerTick.mockImplementation((c: unknown) => structuredClone(c));
+    // Deterministic default: the flag-override roll passes (individual tests override this)
+    randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
+  });
+
+  afterEach(() => {
+    randomSpy.mockRestore();
   });
 
   it("returns 400 for missing characterId", async () => {
@@ -264,6 +277,7 @@ describe("POST /api/age", () => {
     expect(mocks.generateRareEvent).not.toHaveBeenCalled();
     expect(mocks.resolveEvent).not.toHaveBeenCalled();
     expect(mocks.getFlagOverrideEvent).not.toHaveBeenCalled();
+    expect(mocks.careerTick).not.toHaveBeenCalled();
 
     const set = lastSet();
     expect(set.pendingEvent).toBeNull();
@@ -275,5 +289,75 @@ describe("POST /api/age", () => {
     mockLookups({ ...baseCharacter, isAlive: false });
     const res = await POST(makeRequest({ characterId: "char_001" }));
     expect(res.status).toBe(400);
+  });
+
+  describe("flag override gate (ruling R28)", () => {
+    const flagEvent = { ...commonEvent, _id: "evt_flag_debt_collector", tier: "flag_override", eventText: "A debt collector calls." };
+
+    it("exports a 0.35 override chance", () => {
+      expect(FLAG_OVERRIDE_CHANCE).toBe(0.35);
+    });
+
+    it("serves the flag override event when the roll is below the chance", async () => {
+      randomSpy.mockReturnValue(FLAG_OVERRIDE_CHANCE - 0.01);
+      mocks.getFlagOverrideEvent.mockResolvedValue(flagEvent);
+
+      const res = await POST(makeRequest({ characterId: "char_001" }));
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.event).toEqual(flagEvent);
+      expect(mocks.getFlagOverrideEvent).toHaveBeenCalledTimes(1);
+      expect(mocks.selectTier).not.toHaveBeenCalled();
+      expect(mocks.resolveEvent).not.toHaveBeenCalled();
+    });
+
+    it("falls through to tier selection when the flag check finds nothing", async () => {
+      randomSpy.mockReturnValue(0);
+      mocks.getFlagOverrideEvent.mockResolvedValue(null);
+
+      const body = await (await POST(makeRequest({ characterId: "char_001" }))).json();
+      expect(mocks.getFlagOverrideEvent).toHaveBeenCalledTimes(1);
+      expect(mocks.selectTier).toHaveBeenCalledTimes(1);
+      expect(body.event).toEqual(commonEvent);
+    });
+
+    it("uses tier selection and skips the flag check when the roll is at or above the chance", async () => {
+      randomSpy.mockReturnValue(FLAG_OVERRIDE_CHANCE);
+      mocks.getFlagOverrideEvent.mockResolvedValue(flagEvent);
+
+      const res = await POST(makeRequest({ characterId: "char_001" }));
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(mocks.getFlagOverrideEvent).not.toHaveBeenCalled();
+      expect(mocks.selectTier).toHaveBeenCalledTimes(1);
+      expect(mocks.resolveEvent).toHaveBeenCalledWith(expect.anything(), "common", expect.anything());
+      expect(body.event).toEqual(commonEvent);
+    });
+  });
+
+  describe("career tick", () => {
+    it("runs careerTick on the ticked character with the plugin and persists its result", async () => {
+      mocks.careerTick.mockImplementation((c: { career: object; log: object[]; age: number }) => ({
+        ...structuredClone(c),
+        career: { ...c.career, currentJob: "Teacher" },
+        log: [...c.log, { age: c.age, text: "You got a job as a Teacher." }],
+      }));
+
+      const res = await POST(makeRequest({ characterId: "char_001" }));
+      expect(res.status).toBe(200);
+      expect(mocks.careerTick).toHaveBeenCalledTimes(1);
+      const [charArg, pluginArg] = mocks.careerTick.mock.calls[0];
+      expect(charArg.age).toBe(26); // after tickStats
+      expect(pluginArg.id).toBe("core_realistic");
+      const body = await res.json();
+      expect(body.character.career.currentJob).toBe("Teacher");
+      expect(lastSet().log).toContainEqual({ age: 26, text: "You got a job as a Teacher." });
+    });
+
+    it("does not run careerTick when the plugin stat tick kills the character", async () => {
+      mocks.applyStatTick.mockReturnValue({ health: 0 });
+      await POST(makeRequest({ characterId: "char_001" }));
+      expect(mocks.careerTick).not.toHaveBeenCalled();
+    });
   });
 });

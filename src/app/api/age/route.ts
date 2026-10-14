@@ -3,11 +3,12 @@ import { auth } from "@/lib/auth";
 import { getDb } from "@/lib/mongodb";
 import { tickStats, clamp } from "@/engine/statEngine";
 import { selectTier } from "@/engine/tierSelector";
-import { resolveEvent, getFlagOverrideEvent, FALLBACK_EVENT } from "@/engine/eventResolver";
+import { resolveEvent, getFlagOverrideEvent, FALLBACK_EVENT, FLAG_OVERRIDE_CHANCE } from "@/engine/eventResolver";
+import { careerTick } from "@/engine/careerEngine";
 import { generateRareEvent } from "@/engine/aiEventGenerator";
 import { PLUGINS } from "@/plugins";
 import { AgeRequestSchema } from "@/lib/schemas/api";
-import { toClient, appendLog, persistCharacter } from "@/lib/characterServer";
+import { toClient, appendDeathLog, persistCharacter } from "@/lib/characterServer";
 import type { Character, StatBlock } from "@/lib/schemas/character";
 import type { User } from "@/lib/schemas/user";
 import type { EventTemplate, AiEvent } from "@/lib/schemas/event";
@@ -15,8 +16,11 @@ import type { GamePlugin } from "@/lib/schemas/plugin";
 import type { Db } from "mongodb";
 
 async function selectEvent(char: Character, plugin: GamePlugin, db: Db): Promise<EventTemplate | AiEvent> {
-  const flagEvent = await getFlagOverrideEvent(char, db);
-  if (flagEvent) return flagEvent;
+  // Flag overrides only win some turns (ruling R28), otherwise e.g. inDebt would repeat forever.
+  if (Math.random() < FLAG_OVERRIDE_CHANCE) {
+    const flagEvent = await getFlagOverrideEvent(char, db);
+    if (flagEvent) return flagEvent;
+  }
 
   const tier = selectTier(char);
   let event: EventTemplate | AiEvent | null;
@@ -77,11 +81,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 2. Death: no event this turn
+  // 2. Death: no event this turn. Otherwise run the career tick, then pick an event.
   let event: EventTemplate | AiEvent | null = null;
   if (!updated.isAlive) {
-    updated = appendLog(updated, { age: updated.age, text: `You died at age ${updated.age}.` });
+    updated = appendDeathLog(updated);
   } else {
+    updated = careerTick(updated, plugin);
     event = await selectEvent(updated, plugin, db);
   }
 

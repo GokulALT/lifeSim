@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { CharacterSchema, AiEventSchema } from "../index";
+import { CharacterSchema, AiEventSchema, ChoiceSchema } from "../index";
 
 describe("CharacterSchema", () => {
   it("accepts a valid character document", () => {
@@ -78,5 +78,36 @@ describe("AiEventSchema", () => {
       ],
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("setFlags effect", () => {
+  it("is accepted on template choice effects and probabilistic branches", () => {
+    const result = ChoiceSchema.safeParse({
+      text: "Say yes.",
+      effects: { happiness: 5, setFlags: { isMarried: true } },
+      probabilistic: {
+        chance: 0.5,
+        success: { setFlags: { isEmployed: false }, outcomeText: "You quit." },
+        failure: { outcomeText: "Nothing changed." },
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects unknown flags and non-boolean values", () => {
+    expect(ChoiceSchema.safeParse({ text: "Bad.", effects: { setFlags: { isMarried: "yes" } } }).success).toBe(false);
+  });
+
+  it("is stripped from AI event effects so the AI cannot set flags", () => {
+    const result = AiEventSchema.parse({
+      eventText: "A venture capitalist approaches you at a coffee shop.",
+      choices: [
+        { text: "Pitch your idea.", effects: { happiness: 10, setFlags: { isEmployed: true } }, outcomeText: "They seem interested." },
+        { text: "Decline politely.", effects: {}, outcomeText: "You keep your privacy." },
+      ],
+    });
+    expect(result.choices[0].effects).toEqual({ happiness: 10 });
+    expect("setFlags" in result.choices[0].effects).toBe(false);
   });
 });

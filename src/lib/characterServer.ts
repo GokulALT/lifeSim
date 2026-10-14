@@ -34,6 +34,11 @@ export function appendLog(char: Character, entry: LogEntry): Character {
   return c;
 }
 
+/** Pure: returns a clone with the standard death entry ("You died at age N.") appended. */
+export function appendDeathLog(char: Character): Character {
+  return appendLog(char, { age: char.age, text: `You died at age ${char.age}.` });
+}
+
 /** Pure: splits off the oldest log entries beyond MAX_LOG_ENTRIES. */
 export function splitOverflow(char: Character): { character: Character; overflow: LogEntry[] } {
   const excess = char.log.length - MAX_LOG_ENTRIES;

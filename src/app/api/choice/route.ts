@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { getDb } from "@/lib/mongodb";
 import { applyEffects } from "@/engine/statEngine";
 import { ChoiceRequestSchema } from "@/lib/schemas/api";
-import { toClient, appendLog, persistCharacter } from "@/lib/characterServer";
+import { toClient, appendLog, appendDeathLog, persistCharacter } from "@/lib/characterServer";
 import type { Character } from "@/lib/schemas/character";
 
 export async function POST(req: NextRequest) {
@@ -50,6 +50,13 @@ export async function POST(req: NextRequest) {
   }
 
   updated = appendLog(updated, { age: updated.age, text: outcomeText });
+
+  // A choice can be fatal: same death handling and log text as /api/age.
+  if (updated.stats.health <= 0) {
+    updated.stats.health = 0;
+    updated.isAlive = false;
+    updated = appendDeathLog(updated);
+  }
 
   // Conditional on the updatedAt we loaded: a concurrent /api/age or /api/choice wins, this one gets 409.
   const saved = await persistCharacter(db, { ...updated, pendingEvent: null }, character.updatedAt);

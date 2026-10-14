@@ -2,6 +2,13 @@ import type { Db } from "mongodb";
 import type { Character } from "@/lib/schemas/character";
 import type { EventTemplate } from "@/lib/schemas/event";
 
+/**
+ * Probability per turn that an active flag's override event is served (ruling R28).
+ * Below it, flag_override events take priority; otherwise normal tier selection runs,
+ * so a flag such as inDebt cannot lock a character into the same event forever.
+ */
+export const FLAG_OVERRIDE_CHANCE = 0.35;
+
 export const FALLBACK_EVENT: EventTemplate = {
   _id: "evt_builtin_quiet_year",
   packId: "core_realistic",

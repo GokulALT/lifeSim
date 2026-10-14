@@ -222,4 +222,52 @@ describe("POST /api/choice", () => {
     expect(body.outcomeText).toBe("You lost your shirt.");
     expect(body.character.financials.bankBalance).toBe(8000);
   });
+
+  it("kills the character when a choice drops health to 0 and logs the death", async () => {
+    mockCharacter({ stats: { happiness: 50, health: 4, smarts: 60, looks: 55 }, pendingEvent: {
+      ...templateEvent,
+      choices: [
+        { text: "Jump off the roof.", effects: { health: -30 }, outcomeText: "That was a bad idea." },
+        { text: "Climb down.", effects: {}, outcomeText: "You climbed down safely." },
+      ],
+    } });
+    const res = await POST(makeRequest({ characterId: "char_001", eventId: "evt_1", choiceIndex: 0 }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.character.isAlive).toBe(false);
+    expect(body.character.stats.health).toBe(0);
+    const set = lastSet();
+    expect(set.isAlive).toBe(false);
+    expect(set.pendingEvent).toBeNull();
+    expect((set.log as object[]).slice(-2)).toEqual([
+      { age: 25, text: "That was a bad idea." },
+      { age: 25, text: "You died at age 25." },
+    ]);
+  });
+
+  it("keeps the character alive when health stays above 0", async () => {
+    mockCharacter({ stats: { happiness: 50, health: 31, smarts: 60, looks: 55 }, pendingEvent: {
+      ...templateEvent,
+      choices: [
+        { text: "Jump off the roof.", effects: { health: -30 }, outcomeText: "That was a bad idea." },
+        { text: "Climb down.", effects: {}, outcomeText: "You climbed down safely." },
+      ],
+    } });
+    const body = await (await POST(makeRequest({ characterId: "char_001", eventId: "evt_1", choiceIndex: 0 }))).json();
+    expect(body.character.isAlive).toBe(true);
+    expect(body.character.stats.health).toBe(1);
+  });
+
+  it("applies setFlags from a template choice", async () => {
+    mockCharacter({ pendingEvent: {
+      ...templateEvent,
+      choices: [
+        { text: "Say yes.", effects: { happiness: 25, setFlags: { isMarried: true } }, outcomeText: "You're engaged." },
+        { text: "Say no.", effects: {}, outcomeText: "It's over." },
+      ],
+    } });
+    const body = await (await POST(makeRequest({ characterId: "char_001", eventId: "evt_1", choiceIndex: 0 }))).json();
+    expect(body.character.flags.isMarried).toBe(true);
+    expect((lastSet().flags as { isMarried: boolean }).isMarried).toBe(true);
+  });
 });

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import type { Db } from "mongodb";
-import { toClient, appendLog, splitOverflow, archiveEntries, persistCharacter } from "./characterServer";
+import { toClient, appendLog, appendDeathLog, splitOverflow, archiveEntries, persistCharacter } from "./characterServer";
 import type { Character } from "@/lib/schemas";
 
 function makeCharacter(logLength: number): Character {
@@ -38,6 +38,15 @@ describe("toClient", () => {
     const client = toClient(char);
     expect("_lowPerfYears" in client).toBe(false);
     expect("_lowPerfYears" in char).toBe(true); // input untouched
+  });
+});
+
+describe("appendDeathLog", () => {
+  it("appends the standard death entry at the character's age without mutating the input", () => {
+    const char = { ...makeCharacter(0), age: 42 };
+    const result = appendDeathLog(char);
+    expect(result.log.at(-1)).toEqual({ age: 42, text: "You died at age 42." });
+    expect(char.log).toHaveLength(0);
   });
 });
 

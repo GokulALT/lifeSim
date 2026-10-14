@@ -55,6 +55,16 @@ describe("applyEffects", () => {
     const result = applyEffects(char, { careerPerformance: 10 });
     expect(result.career.performance).toBe(60);
   });
+
+  it("merges setFlags into flags without touching other flags", () => {
+    const char = makeChar({ flags: { ...makeChar().flags, isStudent: true } });
+    const result = applyEffects(char, { happiness: 5, setFlags: { isMarried: true, inDebt: false } });
+    expect(result.flags.isMarried).toBe(true);
+    expect(result.flags.inDebt).toBe(false);
+    expect(result.flags.isStudent).toBe(true);
+    expect(result.stats.happiness).toBe(55);
+    expect(char.flags.isMarried).toBe(false); // pure
+  });
 });
 
 describe("tickStats", () => {
@@ -140,5 +150,44 @@ describe("tickStats", () => {
     // age 76 → -3/yr health decay: 1 - 3 = -2, clamped to 0 → death
     expect(result.stats.health).toBe(0);
     expect(result.isAlive).toBe(false);
+  });
+
+  describe("coming of age at 18", () => {
+    const child = () => makeChar({
+      age: 17,
+      flags: { ...makeChar().flags, isStudent: true },
+      financials: { bankBalance: 0, salary: 0, annualExpenses: 0, assets: [] },
+      career: { education: "none", currentJob: null, employer: null, yearsInRole: 0, performance: 50, salaryGrade: "none" },
+    });
+
+    it("ends school, grants highschool education, sets adult expenses, and logs it", () => {
+      const result = tickStats(child());
+      expect(result.age).toBe(18);
+      expect(result.flags.isStudent).toBe(false);
+      expect(result.career.education).toBe("highschool");
+      expect(result.financials.annualExpenses).toBe(12000);
+      expect(result.log).toContainEqual({ age: 18, text: "You finished school and moved out." });
+      // first year of expenses is charged on the next tick
+      expect(result.financials.bankBalance).toBe(0);
+      expect(tickStats(result).financials.bankBalance).toBe(-12000);
+    });
+
+    it("keeps existing education and expenses", () => {
+      const c = child();
+      c.career.education = "bachelor";
+      c.financials.annualExpenses = 5000;
+      const result = tickStats(c);
+      expect(result.career.education).toBe("bachelor");
+      expect(result.financials.annualExpenses).toBe(5000);
+    });
+
+    it("does not fire at other ages", () => {
+      const c = child();
+      c.age = 18;
+      const result = tickStats(c);
+      expect(result.flags.isStudent).toBe(true);
+      expect(result.financials.annualExpenses).toBe(0);
+      expect(result.log).toHaveLength(0);
+    });
   });
 });

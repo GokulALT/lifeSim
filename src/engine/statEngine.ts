@@ -1,5 +1,8 @@
 import type { Character, Effects } from "@/lib/schemas";
 
+export const ADULT_AGE = 18;
+export const ADULT_ANNUAL_EXPENSES = 12000;
+
 export function clamp(value: number, min = 0, max = 100): number {
   return Math.min(max, Math.max(min, Math.round(value)));
 }
@@ -14,6 +17,11 @@ export function applyEffects(char: Character, effects: Effects): Character {
   if (effects.karma      !== undefined) c.hiddenStats.karma = clamp(c.hiddenStats.karma + effects.karma);
   if (effects.bankBalance !== undefined) c.financials.bankBalance += effects.bankBalance;
   if (effects.careerPerformance !== undefined) c.career.performance = clamp(c.career.performance + effects.careerPerformance);
+  if (effects.setFlags) {
+    for (const [flag, value] of Object.entries(effects.setFlags)) {
+      if (value !== undefined) c.flags[flag as keyof Character["flags"]] = value;
+    }
+  }
 
   return c;
 }
@@ -55,6 +63,16 @@ export function tickStats(char: Character): Character {
   // inDebt: set only after 2+ consecutive negative years, cleared once back to >= 0 (ruling R5)
   if (prevBalance < 0 && c.financials.bankBalance < 0) c.flags.inDebt = true;
   else if (c.financials.bankBalance >= 0) c.flags.inDebt = false;
+
+  // Coming of age (ruling R29): school ends, adult living costs begin.
+  // Runs after this year's finances, so the first year of expenses is charged on the next tick,
+  // giving careerTick one hiring roll first.
+  if (c.age === ADULT_AGE) {
+    c.flags.isStudent = false;
+    if (c.career.education === "none") c.career.education = "highschool";
+    if (c.financials.annualExpenses === 0) c.financials.annualExpenses = ADULT_ANNUAL_EXPENSES;
+    c.log.push({ age: c.age, text: "You finished school and moved out." });
+  }
 
   // Career performance drift
   const drift = Math.floor(Math.random() * 7) - 3; // -3 to +3

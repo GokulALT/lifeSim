@@ -1,5 +1,8 @@
 import { z } from "zod";
 import { EventTemplateSchema, AiEventSchema } from "./event";
+import { FlagsSchema } from "./flags";
+
+export { FlagsSchema };
 
 export const StatBlockSchema = z.object({
   happiness: z.number().int().min(0).max(100),
@@ -12,17 +15,6 @@ export const HiddenStatBlockSchema = z.object({
   karma:     z.number().int().min(0).max(100),
   fertility: z.number().int().min(0).max(100),
   willpower: z.number().int().min(0).max(100),
-});
-
-export const FlagsSchema = z.object({
-  isEmployed:      z.boolean(),
-  isMarried:       z.boolean(),
-  hasChildren:     z.boolean(),
-  inPrison:        z.boolean(),
-  hasDrugHabit:    z.boolean(),
-  isStudent:       z.boolean(),
-  inDebt:          z.boolean(),
-  isTerminallyIll: z.boolean(),
 });
 
 export const AssetSchema = z.object({

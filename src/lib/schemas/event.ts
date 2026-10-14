@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { FlagsSchema } from "./flags";
 
 const EffectsSchema = z.object({
   happiness:        z.number().int().min(-30).max(30).optional(),
@@ -8,7 +9,12 @@ const EffectsSchema = z.object({
   bankBalance:      z.number().int().optional(),
   karma:            z.number().int().min(-20).max(20).optional(),
   careerPerformance: z.number().int().min(-20).max(20).optional(),
+  // Template events only: merged into character.flags. Never offered to the AI (see AiEventSchema).
+  setFlags:         FlagsSchema.partial().optional(),
 });
+
+// AI-generated events may not set flags.
+const AiEffectsSchema = EffectsSchema.omit({ setFlags: true });
 
 const ProbabilisticSchema = z.object({
   chance:  z.number().min(0).max(1),
@@ -48,7 +54,7 @@ export const AiEventSchema = z.object({
   eventText: z.string().min(20).max(300),
   choices: z.array(z.object({
     text:        z.string().min(5).max(100),
-    effects:     EffectsSchema,
+    effects:     AiEffectsSchema,
     outcomeText: z.string().min(10).max(200),
   })).min(2).max(4),
 });
