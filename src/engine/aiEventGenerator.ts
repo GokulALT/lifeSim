@@ -69,7 +69,9 @@ export async function generateRareEvent(char: Character, plugin: GamePlugin): Pr
 
     const raw = JSON.parse(stripCodeFence(completion.choices[0]?.message?.content ?? "{}"));
     return AiEventSchema.parse(raw);
-  } catch {
+  } catch (err) {
+    // Message only: never log the request config (it carries the API key).
+    console.warn("[ai] rare event generation failed:", err instanceof Error ? err.message : err);
     return null;
   }
 }

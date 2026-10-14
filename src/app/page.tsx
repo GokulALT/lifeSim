@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { auth, signOut } from "@/lib/auth";
 import { getDb } from "@/lib/mongodb";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -17,7 +17,22 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen bg-gray-950 p-6 max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold text-white mb-6">Your Lives</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-white">Your Lives</h1>
+        <form
+          action={async () => {
+            "use server";
+            await signOut({ redirectTo: "/login" });
+          }}
+        >
+          <button
+            type="submit"
+            className="min-h-[44px] min-w-[44px] px-4 text-sm text-gray-400 hover:text-white rounded-xl border border-gray-800 hover:border-gray-600 transition-colors"
+          >
+            Sign out
+          </button>
+        </form>
+      </div>
 
       <div className="space-y-3">
         {characters.map(c => (

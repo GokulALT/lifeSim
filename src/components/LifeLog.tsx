@@ -21,7 +21,7 @@ export function LifeLog({ log }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [log.length]);
 
   const grouped: Record<number, LogEntry[]> = {};

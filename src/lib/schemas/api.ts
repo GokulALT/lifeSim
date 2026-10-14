@@ -14,10 +14,10 @@ export const ChoiceRequestSchema = z.object({
 export const CreateCharacterSchema = z.object({
   firstName:    z.string().min(1).max(50),
   lastName:     z.string().min(1).max(50),
-  birthCountry: z.string().min(1),
-  birthCity:    z.string().min(1),
-  gender:       z.string().min(1),
-  sexuality:    z.string().min(1),
+  birthCountry: z.string().min(1).max(60),
+  birthCity:    z.string().min(1).max(60),
+  gender:       z.string().min(1).max(60),
+  sexuality:    z.string().min(1).max(60),
   packId:       z.string().default("core_realistic"),
 });
 

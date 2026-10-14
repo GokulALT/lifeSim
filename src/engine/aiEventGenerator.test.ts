@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from "vitest";
 
 vi.mock("openai", () => {
   return {
@@ -41,13 +41,17 @@ describe("generateRareEvent", () => {
   const originalApiKey = process.env.NVIDIA_API_KEY;
   const originalModel = process.env.AI_MODEL;
 
+  let warnSpy: MockInstance<typeof console.warn>;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     process.env.NVIDIA_API_KEY = "test-key";
     delete process.env.AI_MODEL;
   });
 
   afterEach(() => {
+    warnSpy.mockRestore();
     if (originalApiKey === undefined) {
       delete process.env.NVIDIA_API_KEY;
     } else {
@@ -81,6 +85,8 @@ describe("generateRareEvent", () => {
 
     const result = await generateRareEvent(mockChar, coreRealistic);
     expect(result).toBeNull();
+    expect(warnSpy).toHaveBeenCalledWith("[ai] rare event generation failed:", "network error");
+    expect(JSON.stringify(warnSpy.mock.calls)).not.toContain("test-key");
   });
 
   it("returns null when response fails Zod validation", async () => {
@@ -99,6 +105,7 @@ describe("generateRareEvent", () => {
     const result = await generateRareEvent(mockChar, coreRealistic);
     expect(result).toBeNull();
     expect(OpenAI).not.toHaveBeenCalled();
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 
   it("parses valid JSON wrapped in a ```json code fence", async () => {

@@ -88,6 +88,29 @@ describe("GameDashboard", () => {
     expect(screen.getByText("A stranger offers you a job at once.")).toBeInTheDocument();
   });
 
+  it("clears a stale modal when the server reports an event mismatch", async () => {
+    fetchMock.mockReturnValue(jsonRes(409, { error: "Event mismatch" }));
+    render(<GameDashboard initialCharacter={makeChar({ pendingEvent: aiEvent("A stranger offers you a job at once.") })} />);
+    await userEvent.click(screen.getByText("Take the offer"));
+    await waitFor(() => expect(screen.queryByText("A stranger offers you a job at once.")).not.toBeInTheDocument());
+    expect(screen.queryByText("Event mismatch")).not.toBeInTheDocument();
+    expect(useGameStore.getState().pendingEvent).toBeNull();
+  });
+
+  it("clears a stale modal when the server reports no pending event", async () => {
+    fetchMock.mockReturnValue(jsonRes(409, { error: "No pending event" }));
+    render(<GameDashboard initialCharacter={makeChar({ pendingEvent: aiEvent("A stranger offers you a job at once.") })} />);
+    await userEvent.click(screen.getByText("Take the offer"));
+    await waitFor(() => expect(screen.queryByText("A stranger offers you a job at once.")).not.toBeInTheDocument());
+  });
+
+  it("links back to the lives list from the header", () => {
+    render(<GameDashboard initialCharacter={makeChar()} />);
+    const link = screen.getByRole("link", { name: "← Lives" });
+    expect(link).toHaveAttribute("href", "/");
+    expect(link.className).toContain("min-h-[44px]");
+  });
+
   it("renders the tombstone for a dead character", () => {
     render(<GameDashboard initialCharacter={makeChar({ isAlive: false, age: 73 })} />);
     expect(screen.getByText("Lived to age 73")).toBeInTheDocument();

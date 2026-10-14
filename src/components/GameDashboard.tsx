@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useGameStore } from "@/store/gameStore";
 import { DynamicStatRenderer } from "./DynamicStatRenderer";
 import { LifeLog }             from "./LifeLog";
@@ -85,7 +86,8 @@ export function GameDashboard({ initialCharacter }: Props) {
         setCharacter(data.character);
         setPendingEvent(null);
         setError(null);
-      } else if (res.status === 409 && data.error === "No pending event") {
+      } else if (res.status === 409 && (data.error === "No pending event" || data.error === "Event mismatch")) {
+        // The server no longer has this event pending: drop the stale modal.
         setPendingEvent(null);
       } else {
         setError(data.error ?? "Something went wrong");
@@ -119,14 +121,20 @@ export function GameDashboard({ initialCharacter }: Props) {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col max-w-lg mx-auto">
+    <div className="h-dvh bg-gray-950 flex flex-col max-w-lg mx-auto">
       {/* Header */}
-      <div className="px-4 pt-4 pb-2 flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-bold text-white">{char.metadata.firstName} {char.metadata.lastName}</h1>
+      <div className="px-4 pt-4 pb-2 flex items-center justify-between gap-2">
+        <Link
+          href="/"
+          className="min-h-[44px] min-w-[44px] -ml-2 px-2 flex items-center text-sm text-gray-400 hover:text-white"
+        >
+          ← Lives
+        </Link>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-lg font-bold text-white truncate">{char.metadata.firstName} {char.metadata.lastName}</h1>
           <p className="text-sm text-gray-400">Age {char.age} · {char.metadata.birthCity} {flag}</p>
         </div>
-        <p className="text-sm text-gray-400">💰 ${char.financials.bankBalance.toLocaleString()}</p>
+        <p className="shrink-0 text-sm text-gray-400">💰 ${char.financials.bankBalance.toLocaleString()}</p>
       </div>
 
       {/* Stats */}
@@ -152,7 +160,7 @@ export function GameDashboard({ initialCharacter }: Props) {
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
         {activeTab === "life" && <LifeLog log={char.log} />}
         {activeTab === "career"    && <CareerTab    character={char} />}
         {activeTab === "relations" && <RelationsTab character={char} />}

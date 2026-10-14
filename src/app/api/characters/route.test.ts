@@ -58,6 +58,11 @@ describe("/api/characters", () => {
       expect(res.status).toBe(400);
     });
 
+    it.each(["birthCountry", "birthCity", "gender", "sexuality"])("returns 400 when %s exceeds 60 characters", async (field) => {
+      const res = await POST(makeRequest({ ...validBody, [field]: "x".repeat(61) }));
+      expect(res.status).toBe(400);
+    });
+
     it("returns 400 for malformed JSON", async () => {
       const res = await POST(makeRequest("{not json"));
       expect(res.status).toBe(400);
