@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { CharacterSchema, EventTemplateSchema, AiEventSchema, UserSchema } from "../index";
+import { CharacterSchema, AiEventSchema } from "../index";
 
 describe("CharacterSchema", () => {
   it("accepts a valid character document", () => {
@@ -26,6 +26,26 @@ describe("CharacterSchema", () => {
   it("rejects stats outside 0-100", () => {
     const result = CharacterSchema.shape.stats.safeParse({ happiness: 150, health: 80, smarts: 60, looks: 55 });
     expect(result.success).toBe(false);
+  });
+
+  it("accepts a null, template, or AI pendingEvent and rejects garbage", () => {
+    const pending = CharacterSchema.shape.pendingEvent;
+    expect(pending.safeParse(undefined).success).toBe(true);
+    expect(pending.safeParse(null).success).toBe(true);
+    expect(pending.safeParse({
+      _id: "evt_1", packId: "core_realistic", tier: "common",
+      conditions: {},
+      eventText: "A quiet year passes by.",
+      choices: [{ text: "Rest", effects: {} }, { text: "Work", effects: {} }],
+    }).success).toBe(true);
+    expect(pending.safeParse({
+      eventText: "A venture capitalist approaches you at a coffee shop.",
+      choices: [
+        { text: "Pitch your idea.", effects: {}, outcomeText: "They seem interested." },
+        { text: "Decline politely.", effects: {}, outcomeText: "You keep your privacy." },
+      ],
+    }).success).toBe(true);
+    expect(pending.safeParse({ eventText: "x" }).success).toBe(false);
   });
 });
 

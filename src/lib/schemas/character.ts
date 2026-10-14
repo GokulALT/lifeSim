@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { EventTemplateSchema, AiEventSchema } from "./event";
 
 export const StatBlockSchema = z.object({
   happiness: z.number().int().min(0).max(100),
@@ -82,6 +83,8 @@ export const CharacterSchema = z.object({
   log:         z.array(LogEntrySchema),
   createdAt:   z.string(),
   updatedAt:   z.string(),
+  // Server-authoritative event awaiting the player's choice (null once resolved)
+  pendingEvent: z.union([EventTemplateSchema, AiEventSchema]).nullable().optional(),
 });
 
 // Client-safe version: hiddenStats omitted
