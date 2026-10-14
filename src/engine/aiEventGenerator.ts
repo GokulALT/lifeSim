@@ -23,14 +23,19 @@ Provide 2-4 choices.`;
   const activeFlags = Object.entries(char.flags)
     .filter(([, v]) => v).map(([k]) => k).join(", ") || "none";
 
-  const user = `Name: ${char.metadata.firstName}, Age: ${char.age}, Country: ${char.metadata.birthCountry}
+  const user = `Name: ${sanitize(char.metadata.firstName, 50)}, Age: ${char.age}, Country: ${sanitize(char.metadata.birthCountry, 50)}
 Stats: Happiness ${char.stats.happiness}, Health ${char.stats.health}, Smarts ${char.stats.smarts}, Looks ${char.stats.looks}
 Career: ${char.career.currentJob ?? "unemployed"}, Education: ${char.career.education}
 Bank: $${char.financials.bankBalance.toLocaleString()}, Salary: $${char.financials.salary.toLocaleString()}/yr
 Active flags: ${activeFlags}
-Recent events: ${char.log.slice(-3).map(e => e.text).join(" | ") || "none"}`;
+Recent events: ${char.log.slice(-3).map(e => sanitize(e.text, 200)).join(" | ") || "none"}`;
 
   return { system, user };
+}
+
+// Replaces control characters (incl. newlines) with spaces and caps length.
+function sanitize(text: string, maxLen: number): string {
+  return text.replace(/[\x00-\x1f\x7f]/g, " ").slice(0, maxLen);
 }
 
 // Strips one optional surrounding markdown code fence (```json ... ``` or ``` ... ```).
@@ -41,13 +46,15 @@ function stripCodeFence(raw: string): string {
 }
 
 export async function generateRareEvent(char: Character, plugin: GamePlugin): Promise<AiEvent | null> {
-  const apiKey = process.env.NVIDIA_API_KEY;
+  const apiKey = process.env.NVIDIA_API_KEY?.trim();
   if (!apiKey) return null;
 
   try {
     const ai = new OpenAI({
       apiKey,
-      baseURL: "https://integrate.api.nvidia.com/v1",
+      baseURL:     "https://integrate.api.nvidia.com/v1",
+      timeout:     8000,
+      maxRetries:  0,
     });
 
     const { system, user } = buildPrompts(char, plugin);

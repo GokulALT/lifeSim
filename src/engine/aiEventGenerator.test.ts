@@ -39,10 +39,12 @@ const validAiResponse = {
 
 describe("generateRareEvent", () => {
   const originalApiKey = process.env.NVIDIA_API_KEY;
+  const originalModel = process.env.AI_MODEL;
 
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.NVIDIA_API_KEY = "test-key";
+    delete process.env.AI_MODEL;
   });
 
   afterEach(() => {
@@ -50,6 +52,11 @@ describe("generateRareEvent", () => {
       delete process.env.NVIDIA_API_KEY;
     } else {
       process.env.NVIDIA_API_KEY = originalApiKey;
+    }
+    if (originalModel === undefined) {
+      delete process.env.AI_MODEL;
+    } else {
+      process.env.AI_MODEL = originalModel;
     }
   });
 
@@ -102,5 +109,58 @@ describe("generateRareEvent", () => {
 
     const result = await generateRareEvent(mockChar, coreRealistic);
     expect(result).toEqual(validAiResponse);
+  });
+
+  it("constructs the client with timeout and no retries, and calls create with the expected params", async () => {
+    const mockCreate = vi.fn().mockResolvedValue({
+      choices: [{ message: { content: JSON.stringify(validAiResponse) } }],
+    });
+    (OpenAI as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+      chat: { completions: { create: mockCreate } },
+    }));
+
+    await generateRareEvent(mockChar, coreRealistic);
+
+    expect(OpenAI).toHaveBeenCalledWith({
+      apiKey: "test-key",
+      baseURL: "https://integrate.api.nvidia.com/v1",
+      timeout: 8000,
+      maxRetries: 0,
+    });
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
+      model: "z-ai/glm-5.3-flash",
+      temperature: 0.85,
+      max_tokens: 600,
+      stream: false,
+    }));
+  });
+
+  it("uses AI_MODEL when it is set", async () => {
+    process.env.AI_MODEL = "custom/model";
+    const mockCreate = vi.fn().mockResolvedValue({
+      choices: [{ message: { content: JSON.stringify(validAiResponse) } }],
+    });
+    (OpenAI as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+      chat: { completions: { create: mockCreate } },
+    }));
+
+    await generateRareEvent(mockChar, coreRealistic);
+
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ model: "custom/model" }));
+  });
+
+  it("strips newlines from player-controlled text in the user prompt", async () => {
+    const mockCreate = vi.fn().mockResolvedValue({
+      choices: [{ message: { content: JSON.stringify(validAiResponse) } }],
+    });
+    (OpenAI as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+      chat: { completions: { create: mockCreate } },
+    }));
+
+    await generateRareEvent({ ...mockChar, metadata: { ...mockChar.metadata, firstName: "Sa\nm" } }, coreRealistic);
+
+    const userMessage = mockCreate.mock.calls[0][0].messages[1].content as string;
+    expect(userMessage).toContain("Name: Sa m, Age:");
+    expect(userMessage).not.toContain("Sa\nm");
   });
 });
