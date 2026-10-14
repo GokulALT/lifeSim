@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { GameDashboard } from "./GameDashboard";
 import { useGameStore } from "@/store/gameStore";
@@ -83,12 +83,26 @@ describe("GameDashboard", () => {
     fetchMock.mockReturnValue(jsonRes(500, { error: "Server exploded" }));
     render(<GameDashboard initialCharacter={makeChar({ pendingEvent: aiEvent("A stranger offers you a job at once.") })} />);
     await userEvent.click(screen.getByText("Decline politely"));
-    expect(await screen.findByText("Server exploded")).toBeInTheDocument();
+    const modal = screen.getByTestId("event-modal");
+    expect(await within(modal).findByText("Server exploded")).toBeInTheDocument();
     expect(screen.getByText("A stranger offers you a job at once.")).toBeInTheDocument();
   });
 
   it("renders the tombstone for a dead character", () => {
     render(<GameDashboard initialCharacter={makeChar({ isAlive: false, age: 73 })} />);
     expect(screen.getByText("Lived to age 73")).toBeInTheDocument();
+  });
+
+  it("does not show a stale character or event from a previously played character", async () => {
+    useGameStore.setState({
+      character: makeChar({ _id: "A", metadata: { firstName: "Alice", lastName: "Alpha", birthCountry: "India", birthCity: "Pune", gender: "female", sexuality: "straight" } }),
+      pendingEvent: aiEvent("Alice has an event pending now."),
+    });
+    render(<GameDashboard initialCharacter={makeChar({ _id: "B", metadata: { firstName: "Bob", lastName: "Beta", birthCountry: "India", birthCity: "Pune", gender: "male", sexuality: "straight" } })} />);
+    expect(await screen.findByText("Bob Beta")).toBeInTheDocument();
+    expect(screen.queryByText("Alice Alpha")).not.toBeInTheDocument();
+    expect(screen.queryByText("Alice has an event pending now.")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("event-modal")).not.toBeInTheDocument();
+    await waitFor(() => expect(useGameStore.getState().character?._id).toBe("B"));
   });
 });

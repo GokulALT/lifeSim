@@ -15,23 +15,28 @@ const COUNTRY_FLAGS: Record<string, string> = {
 };
 
 export function GameDashboard({ initialCharacter }: Props) {
-  const { character, pendingEvent, isAgeing, setCharacter, setPendingEvent, setIsAgeing } = useGameStore();
+  const { character, pendingEvent: storeEvent, isAgeing, setCharacter, setPendingEvent, setIsAgeing } = useGameStore();
   const [prevStats, setPrevStats] = useState<CharacterClient["stats"] | null>(null);
   const [isResolvingChoice, setIsResolvingChoice] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"life" | "career" | "relations" | "assets">("life");
 
-  const char = character ?? initialCharacter;
+  const synced = character?._id === initialCharacter._id;
+  const char = synced && character ? character : initialCharacter;
+  const pendingEvent = synced ? storeEvent : null;
   const flag  = COUNTRY_FLAGS[char.metadata.birthCountry] ?? "🌍";
 
   useEffect(() => {
-    if (!character) {
+    if (character?._id !== initialCharacter._id) {
       setCharacter(initialCharacter);
       setPendingEvent(initialCharacter.pendingEvent ?? null);
+      setPrevStats(null);
+      setError(null);
     }
   }, [initialCharacter, character, setCharacter, setPendingEvent]);
 
   async function handleAge() {
+    setError(null);
     setIsAgeing(true);
     setPrevStats(char.stats);
     try {
@@ -60,6 +65,7 @@ export function GameDashboard({ initialCharacter }: Props) {
 
   async function handleChoice(choiceIndex: number) {
     if (!pendingEvent) return;
+    setError(null);
     setIsResolvingChoice(true);
     try {
       const res = await fetch("/api/choice", {
@@ -178,10 +184,10 @@ export function GameDashboard({ initialCharacter }: Props) {
         )}
       </div>
 
-      {error && <p className="px-4 text-red-400 text-sm">{error}</p>}
+      {error && !pendingEvent && <p className="px-4 text-red-400 text-sm">{error}</p>}
       <AgeButton onClick={handleAge} disabled={!!pendingEvent} isLoading={isAgeing} />
 
-      <EventModal event={pendingEvent} onChoice={handleChoice} isLoading={isResolvingChoice} />
+      <EventModal event={pendingEvent} error={error} onChoice={handleChoice} isLoading={isResolvingChoice} />
 
       {/* Bottom nav */}
       <nav className="border-t border-gray-800 safe-bottom">
