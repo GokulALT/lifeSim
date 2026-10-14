@@ -1,16 +1,26 @@
 import { MongoClient, Db } from "mongodb";
 
-let client: MongoClient;
-let db: Db;
+// Cache the connection promise on globalThis so it survives Next.js dev hot reloads.
+const globalForMongo = globalThis as unknown as { _mongoDbPromise?: Promise<Db> };
 
 export async function getDb(): Promise<Db> {
-  if (db) return db;
+  let promise = globalForMongo._mongoDbPromise;
 
-  const uri = process.env.MONGODB_URI;
-  if (!uri) throw new Error("MONGODB_URI environment variable is not set");
+  if (!promise) {
+    const uri = process.env.MONGODB_URI;
+    if (!uri) throw new Error("MONGODB_URI environment variable is not set");
 
-  client = new MongoClient(uri);
-  await client.connect();
-  db = client.db();
-  return db;
+    const client = new MongoClient(uri);
+    promise = client.connect().then((connected) => connected.db());
+    globalForMongo._mongoDbPromise = promise;
+
+    // Clear the cache on failure so the next call can retry.
+    promise.catch(() => {
+      if (globalForMongo._mongoDbPromise === promise) {
+        delete globalForMongo._mongoDbPromise;
+      }
+    });
+  }
+
+  return promise;
 }
